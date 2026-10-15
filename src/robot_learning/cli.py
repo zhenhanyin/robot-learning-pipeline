@@ -36,6 +36,9 @@ def main(argv: Sequence[str] = None) -> int:
     annotate.add_argument("--end", required=True, type=int)
     annotate.add_argument("--text", required=True)
     annotate.add_argument("--used-for-vlm", action="store_true")
+    annotate_web = commands.add_parser("annotate", help="serve the local offline annotator")
+    annotate_web.add_argument("--data-root", required=True, type=Path)
+    annotate_web.add_argument("--port", type=int, default=8765)
     args = parser.parse_args(argv)
 
     if args.command == "sample":
@@ -45,6 +48,12 @@ def main(argv: Sequence[str] = None) -> int:
         episode = EpisodeReader(args.directory)
         counts = Counter(type(record).__name__ for record in episode.records())
         print(json.dumps({"metadata": episode.metadata, "counts": counts}, indent=2))
+    elif args.command == "annotate":
+        from robot_learning.apps.annotator import serve
+
+        if not 0 <= args.port <= 65535:
+            parser.error("port must be between 0 and 65535")
+        serve(args.data_root, args.port)
     else:
         episode = EpisodeReader(args.directory)
         frame_count = sum(isinstance(record, CameraFrame) for record in episode.records())

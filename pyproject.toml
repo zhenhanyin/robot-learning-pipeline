@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "robot-learning-pipeline"
-version = "0.0.3"
+version = "0.0.4"
 description = "Robot data collection, annotation, training, and deployment interfaces"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -25,3 +25,6 @@ Issues = "https://github.com/zhenhanyin/robot-learning-pipeline/issues"
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["robot_learning*"]
+
+[tool.setuptools.package-data]
+"robot_learning.apps" = ["annotator.html", "annotator.js", "annotator.css"]

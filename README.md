@@ -1,6 +1,6 @@
 # Robot Learning Pipeline
 
-面向机械臂数据采集、标注、训练数据导出与策略部署的分阶段开源框架。**v0.0.3 增加只读采集编排**，可用假设备验证状态、相机和可选动作流到离线 Episode 的链路；ARX X5 与 Piper 的硬件功能尚未迁入，不能用于控制真机。
+面向机械臂数据采集、标注、训练数据导出与策略部署的分阶段开源框架。**v0.0.4 增加本机离线标注 Web**，可对合成 Episode 的帧片段进行标注；只读采集编排可用假设备验证状态、相机和可选动作流。ARX X5 与 Piper 的硬件功能尚未迁入，不能用于控制真机。
 
 原始项目 `Data-Collect-and-Deploy-main` 的三个目录会按功能逐项迁移，不会直接复制整棵旧代码树。首版不包含第三方 SDK、权重或真实采集数据。
 
@@ -19,6 +19,7 @@
 | 公共数据对象和硬件接口 | 已建立接口 | v0.0.1 |
 | 离线 Episode、同步、标注模型 | 可用，无硬件依赖 | v0.0.2 |
 | 只读多源采集编排 | 可用，假设备测试通过 | v0.0.3 |
+| 本机离线片段标注 Web | 可用，合成 Episode 测试通过 | v0.0.4 |
 | Piper 采集、时间同步与标注 | 待迁移 | v0.1.0 |
 | ARX X5 ROS2 采集与回放 | 待迁移 | v0.2.0 |
 | HDF5、LeRobot 导出与训练配置 | 待迁移 | v0.3.0 |
@@ -33,11 +34,10 @@ src/robot_learning/
   adapters/            # Piper CAN/ROS1、ARX ROS2 适配器
   workflows/           # 只读采集与时间戳同步；后续回放编排
   formats/             # JSONL 原始 Episode 与标注；后续 HDF5、LeRobot
+  annotation/          # 本地 Episode 标注存储与校验
+  apps/                # 本机离线标注 Web；后续控制界面
   policies/            # 策略客户端与动作后处理
-  cli.py               # 目前提供离线示例、检查、片段标注
-apps/
-  annotator/           # 标注 Web 前后端
-  control_web/         # 远程控制界面
+  cli.py               # 离线示例、检查、片段标注和标注 Web 入口
 configs/               # 机器人、相机、任务和模型配置示例
 integrations/          # OpenPI、LLaMA-Factory 等第三方集成配置
 launch/                # ROS1/ROS2 启动文件；各自环境独立
@@ -45,7 +45,7 @@ docs/                  # 架构、数据协议、迁移与发布计划
 tests/                 # 不依赖真机的契约测试
 ```
 
-目前实现 `core/`、只读 `workflows/` 与离线 `formats/`；硬件适配器和 Web 应用尚未实现。详见 [架构说明](docs/architecture.md)、[采集编排](docs/collection-workflow.md) 和 [迁移清单](docs/migration.md)。
+目前实现 `core/`、只读 `workflows/`、离线 `formats/` 和本机标注 Web；硬件适配器与控制 Web 尚未实现。详见 [架构说明](docs/architecture.md)、[采集编排](docs/collection-workflow.md) 和 [迁移清单](docs/migration.md)。
 
 ## 安装与验证
 
@@ -60,9 +60,10 @@ robot-learning inspect ./data/demo
 robot-learning annotate-span ./data/demo --annotator demo --start 0 --end 2 --text "pick object"
 python examples/collect_synthetic.py ./data/collected-demo
 robot-learning inspect ./data/collected-demo
+robot-learning annotate --data-root ./data
 ```
 
-`sample` 生成三帧合成数据；`collect_synthetic.py` 使用只读采集编排生成另一条假设备轨迹。`annotate-span` 使用半开区间 `[start,end)`，标注文件独立于原始事件。输出格式见 [离线格式说明](docs/offline-episode.md)。Python API `record_samples()` 的用法和限制见 [采集编排](docs/collection-workflow.md)。硬件采集命令、依赖安装和真机验证步骤会随对应模块一起发布；当前不提供 `robot-learning collect`。
+`sample` 生成三帧合成数据；`collect_synthetic.py` 使用只读采集编排生成另一条假设备轨迹。`annotate-span` 使用半开区间 `[start,end)`，标注文件独立于原始事件。`annotate` 仅绑定 `127.0.0.1`，浏览器打开 `http://127.0.0.1:8765/`；详细使用和限制见 [本机标注说明](docs/annotation-web.md)。输出格式见 [离线格式说明](docs/offline-episode.md)。Python API `record_samples()` 的用法和限制见 [采集编排](docs/collection-workflow.md)。硬件采集命令、依赖安装和真机验证步骤会随对应模块一起发布；当前不提供 `robot-learning collect`。
 
 ## 版本与发布
 
