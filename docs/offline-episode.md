@@ -19,3 +19,5 @@ data/demo/
 v0.0.3 可通过 [只读采集编排](collection-workflow.md) 从实现公共读取接口的设备写入同一格式；v0.0.4 可通过 [本机标注 Web](annotation-web.md) 编辑 `annotation.json`。`schema_version` 仍为 1。
 
 v0.0.5 增加 [只读完整性检查](episode-validation.md)。检查通过只表示本地文件和事件契约自洽，不代表图像语义、真实时钟同步、机械臂单位或动作来源已经过真机核对。
+
+v0.0.6 可 [导入旧 Piper 录制目录](piper-legacy-import.md)。导入时保留旧整数 tick，并在元数据中显式标注 `joint_units` 与可选 `gripper_units`；没有把 tick 假定为已经校准的 SI 单位。

@@ -40,12 +40,18 @@ def validate_episode(directory: Path) -> ValidationReport:
 
     try:
         metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-        if not isinstance(metadata, dict) or type(metadata.get("schema_version")) is not int or metadata["schema_version"] != SCHEMA_VERSION:
+        if not isinstance(metadata, dict):
             errors.append("unsupported or missing schema_version")
         else:
+            if type(metadata.get("schema_version")) is not int or metadata["schema_version"] != SCHEMA_VERSION:
+                errors.append("unsupported or missing schema_version")
             for key in ("robot_model", "clock_domain", "joint_units"):
                 if not isinstance(metadata.get(key), str) or not metadata[key].strip():
                     errors.append("metadata.{} must be a non-empty string".format(key))
+            if "gripper_units" in metadata and (
+                not isinstance(metadata["gripper_units"], str) or not metadata["gripper_units"].strip()
+            ):
+                errors.append("metadata.gripper_units must be a non-empty string")
     except (OSError, UnicodeError, ValueError) as error:
         errors.append("metadata.json: {}".format(error))
 
