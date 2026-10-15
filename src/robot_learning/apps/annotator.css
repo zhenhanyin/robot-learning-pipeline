@@ -1,0 +1,11 @@
+:root { font-family: system-ui, sans-serif; color-scheme: light dark; }
+body { margin: 0; padding: 2rem; }
+main { max-width: 900px; margin: auto; }
+label { display: block; margin: 1rem 0 0.4rem; }
+input, select, button { font: inherit; padding: 0.5rem; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 0.5rem; text-align: left; border-bottom: 1px solid #8888; }
+td input[type="number"] { width: 5rem; }
+td input[type="text"] { width: 100%; box-sizing: border-box; }
+.actions { display: flex; gap: 1rem; margin-top: 1rem; }
+#status { min-height: 1.5rem; }

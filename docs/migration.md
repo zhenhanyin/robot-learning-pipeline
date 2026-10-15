@@ -7,7 +7,7 @@
 | `data_collect_piper/songlings/piper_interface_v2.py` | `src/robot_learning/adapters/piper/` | 隔离 CAN 接口及主从臂读写 | fake CAN 测试、SDK 许可核对 |
 | `data_collect_piper/songlings/data_collect.py` | `src/robot_learning/workflows/` 和 Piper adapter | 拆开 Qt、订阅、录制、保存 | 合成采集回归、真机录制记录 |
 | `data_collect_piper/songlings/converting_utils.py` | `src/robot_learning/workflows/synchronization.py` | 时间戳同步与片段裁剪 | 包含缺帧、乱序样本的测试 |
-| `data_collect_piper/data_anno/` | `apps/annotator/` | FastAPI、Vue 前后端分离 | 用合成轨迹完成标注并重新读取 |
+| `data_collect_piper/data_anno/` | `src/robot_learning/annotation/` 与 `src/robot_learning/apps/` | 先以自有标准库实现本机离线标注；不复制旧 FastAPI/Vue 代码 | 用合成轨迹完成标注并重新读取；真机图像预览待核对 |
 | `data_collect_piper/*control_web/` 和 `祖传脚本/Deploy/*control_web/` | `apps/control_web/` | 选择一份基线，合并接口 | HTTP→ROS1 映射测试 |
 | `data_collect_arx/main/utils/ros_operator.py` | `src/robot_learning/adapters/arx_x5/` | ROS2 图像/机械臂状态适配 | 录制消息回放测试 |
 | `data_collect_arx/main/collect_noop.py` | `src/robot_learning/workflows/` | 采集、静止帧过滤与保存 | HDF5 字段对照、真机录制记录 |

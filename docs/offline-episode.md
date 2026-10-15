@@ -16,4 +16,4 @@ data/demo/
 
 本格式用于离线回归和接口联调。它没有经过真机校准，尚未承诺长时录制性能、崩溃恢复、HDF5 兼容或训练格式导出。迁移 Piper 数据时应先验证时间戳、单位、编码与动作来源，再扩展元数据和转换器。
 
-v0.0.3 可通过 [只读采集编排](collection-workflow.md) 从实现公共读取接口的设备写入同一格式；`schema_version` 仍为 1。
+v0.0.3 可通过 [只读采集编排](collection-workflow.md) 从实现公共读取接口的设备写入同一格式；v0.0.4 可通过 [本机标注 Web](annotation-web.md) 编辑 `annotation.json`。`schema_version` 仍为 1。
