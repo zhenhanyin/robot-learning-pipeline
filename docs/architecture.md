@@ -14,9 +14,9 @@ Camera adapters ─────────────────────�
                               └─> robot adapter.send_command()
 ```
 
-- `core` 只描述跨硬件的数据和接口，不能导入 ROS、CAN、Qt、Web 服务或模型框架。
+- `core` 只描述跨硬件的数据和接口，不能导入 ROS、CAN、Qt、Web 服务或模型框架。`StateReader` / `ActionReader` 是只读端口，`RobotAdapter` 才有 `send_command()`。
 - `adapters` 转换设备原生消息；ROS1 与 ROS2 在不同进程和环境中使用相同契约。
-- `workflows` 编排采集、同步、回放；它只依赖 core 接口，不直接解析 CAN 帧。
+- `workflows` 编排采集、同步、回放；它只依赖 core 接口，不直接解析 CAN 帧。当前 `record_samples()` 仅读取设备，不下发动作。
 - `formats` 负责原始记录和训练格式转换；标注信息独立保存。
 - `policies` 负责模型协议和动作后处理，输出 `RobotCommand`；设备使能及关节限制留给适配器和运行配置。
 - `apps` 提供 Qt/Web 交互，不承担机械臂协议解析。
