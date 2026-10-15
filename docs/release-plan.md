@@ -1,0 +1,41 @@
+# Staged GitHub release plan
+
+## Repository and version rules
+
+- 使用一个公开主仓库；`main` 保持可复现，功能工作在短期分支，通过 PR 合并。
+- 软件版本以根目录 `pyproject.toml` 为准，Git tag 为 `vMAJOR.MINOR.PATCH`；原始数据格式有单独 `schema_version`。
+- 在公开 `v1.0.0` 前，版本视为迭代接口；破坏数据格式须提供转换脚本并更新 `schema_version`。
+- 每个功能 PR 标明旧文件、目标文件、输入输出变化、验证结果和第三方归属。
+- 每个发布版本更新 `CHANGELOG.md`、文档、依赖锁定信息，打 tag 并在 GitHub Release 写明设备和系统要求。
+
+| 阶段 / 版本 | 上传内容 | 发布门槛 |
+| --- | --- | --- |
+| P0 / `v0.0.1` | README、架构、版本规则、公共数据契约、测试、第三方清单 | 根许可证确认；公开文件通过敏感信息与许可检查；core 测试通过 |
+| P1 / `v0.1.0` | Piper CAN/ROS1 采集、同步、标注 Web、合成示例 | 离线录制与标注回归；真机数据人工核对；安装文档可复现 |
+| P2 / `v0.2.0` | ARX X5 ROS2 采集、回放、相机映射 | ROS2 消息回放；动作来源和单位确认；真机安全检查 |
+| P3 / `v0.3.0` | HDF5/LeRobot 导出、OpenPI/LLaMA-Factory 数据构造配置 | 同一合成 episode 导出两种格式；模型数据加载成功 |
+| P4 / `v0.4.0` | ACT、H-RDT、π0/π0.5 策略客户端与动作控制 | 假模型联调；超时/断线/急停测试；真机演示记录 |
+| P5 / `v0.5.0` | 经筛选的 MagicBot 多模型任务编排、Web 控制 | 语音/VLM/VLA 协议测试；完整任务复现 |
+
+每阶段分多个小 PR：接口与配置 → 实现 → 离线测试 → 硬件验证 → 文档与发布。先上传已验证部分，后续模块独立演进。模型权重和真实录制数据不随代码推送。
+
+## First upload sequence
+
+1. 本地完成 P0 清单并确认项目代码许可证及第三方使用方式。
+2. 在 GitHub 创建空仓库，开启分支保护、PR 审查和基本 CI。
+3. 推送 P0 的精简仓库，发布 `v0.0.1`，明确它只提供公共接口。
+4. 后续每个阶段通过 PR 合并与 Release 发布；未完成的阶段放在 Issues/Milestones 中跟踪。
+
+公开文件和许可证确认后，在新仓库执行以下步骤。把占位符替换成实际 GitHub 所有者和仓库名；`git add --dry-run .` 可先复核文件集合。创建公开仓库前不要导入旧项目历史。
+
+```bash
+git add .
+git diff --cached --stat
+git commit -m "chore: establish public project foundation"
+git remote add origin git@github.com:<owner>/<repository>.git
+git push -u origin main
+git tag -a v0.0.1 -m "Foundation and public roadmap"
+git push origin v0.0.1
+```
+
+后续版本在发布 PR 中更新 `pyproject.toml` 与 `CHANGELOG.md`，合并后从 `main` 打同号 tag。若公开前发现敏感信息进入 Git 历史，不仅删除工作区文件，还需处理历史并轮换受影响的凭据。
