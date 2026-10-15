@@ -5,10 +5,17 @@ from typing import Protocol, Sequence
 from robot_learning.core.models import ArmAction, ArmState, CameraFrame, RobotCommand
 
 
-class RobotAdapter(Protocol):
+class StateReader(Protocol):
     def read_state(self) -> ArmState:
         ...
 
+
+class ActionReader(Protocol):
+    def read_action(self) -> ArmAction:
+        ...
+
+
+class RobotAdapter(StateReader, Protocol):
     def send_command(self, command: RobotCommand) -> None:
         ...
 

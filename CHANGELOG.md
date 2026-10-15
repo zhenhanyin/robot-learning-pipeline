@@ -6,6 +6,12 @@
 
 - 准备 Piper CAN/ROS1 适配、真机数据核对与标注 Web。
 
+## 0.0.3
+
+- 分离只读 `StateReader`、`ActionReader` 与可下发命令的 `RobotAdapter` 接口。
+- 增加 `record_samples()`，按时间戳容差写入完整观测组，丢弃不齐的采集尝试。
+- 使用假设备验证完整写入、时间偏差丢弃、时间戳乱序和标识不匹配；不包含真机适配器。
+
 ## 0.0.2
 
 - 增加无硬件依赖的 JSONL Episode 读写、帧二进制分离和版本检查。

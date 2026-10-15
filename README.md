@@ -1,6 +1,6 @@
 # Robot Learning Pipeline
 
-面向机械臂数据采集、标注、训练数据导出与策略部署的分阶段开源框架。**v0.0.2 增加离线 Episode 读写、时间戳同步、标注数据和合成示例**；ARX X5 与 Piper 的硬件功能尚未迁入，不能用于控制真机。
+面向机械臂数据采集、标注、训练数据导出与策略部署的分阶段开源框架。**v0.0.3 增加只读采集编排**，可用假设备验证状态、相机和可选动作流到离线 Episode 的链路；ARX X5 与 Piper 的硬件功能尚未迁入，不能用于控制真机。
 
 原始项目 `Data-Collect-and-Deploy-main` 的三个目录会按功能逐项迁移，不会直接复制整棵旧代码树。首版不包含第三方 SDK、权重或真实采集数据。
 
@@ -18,6 +18,7 @@
 | --- | --- | --- |
 | 公共数据对象和硬件接口 | 已建立接口 | v0.0.1 |
 | 离线 Episode、同步、标注模型 | 可用，无硬件依赖 | v0.0.2 |
+| 只读多源采集编排 | 可用，假设备测试通过 | v0.0.3 |
 | Piper 采集、时间同步与标注 | 待迁移 | v0.1.0 |
 | ARX X5 ROS2 采集与回放 | 待迁移 | v0.2.0 |
 | HDF5、LeRobot 导出与训练配置 | 待迁移 | v0.3.0 |
@@ -28,9 +29,9 @@
 
 ```text
 src/robot_learning/
-  core/                # 数据对象、硬件和模型接口；仅用 Python 标准库
+  core/                # 数据对象、只读采集和硬件控制接口；仅用标准库
   adapters/            # Piper CAN/ROS1、ARX ROS2 适配器
-  workflows/           # 时间戳同步；后续采集、回放编排
+  workflows/           # 只读采集与时间戳同步；后续回放编排
   formats/             # JSONL 原始 Episode 与标注；后续 HDF5、LeRobot
   policies/            # 策略客户端与动作后处理
   cli.py               # 目前提供离线示例、检查、片段标注
@@ -44,7 +45,7 @@ docs/                  # 架构、数据协议、迁移与发布计划
 tests/                 # 不依赖真机的契约测试
 ```
 
-目前实现 `core/`、离线 `workflows/` 与 `formats/`；硬件适配器和 Web 应用尚未实现。详见 [架构说明](docs/architecture.md)、[统一命令与配置](docs/cli-and-config.md) 和 [迁移清单](docs/migration.md)。
+目前实现 `core/`、只读 `workflows/` 与离线 `formats/`；硬件适配器和 Web 应用尚未实现。详见 [架构说明](docs/architecture.md)、[采集编排](docs/collection-workflow.md) 和 [迁移清单](docs/migration.md)。
 
 ## 安装与验证
 
@@ -57,9 +58,11 @@ python -c "from robot_learning.core import ArmState; print(ArmState('left', 0, (
 robot-learning sample ./data/demo
 robot-learning inspect ./data/demo
 robot-learning annotate-span ./data/demo --annotator demo --start 0 --end 2 --text "pick object"
+python examples/collect_synthetic.py ./data/collected-demo
+robot-learning inspect ./data/collected-demo
 ```
 
-`sample` 生成三帧合成数据；`annotate-span` 使用半开区间 `[start,end)`，标注文件独立于原始事件。输出格式见 [离线格式说明](docs/offline-episode.md)。硬件采集命令、依赖安装和真机验证步骤会随对应模块一起发布；当前不提供 `robot-learning collect`。
+`sample` 生成三帧合成数据；`collect_synthetic.py` 使用只读采集编排生成另一条假设备轨迹。`annotate-span` 使用半开区间 `[start,end)`，标注文件独立于原始事件。输出格式见 [离线格式说明](docs/offline-episode.md)。Python API `record_samples()` 的用法和限制见 [采集编排](docs/collection-workflow.md)。硬件采集命令、依赖安装和真机验证步骤会随对应模块一起发布；当前不提供 `robot-learning collect`。
 
 ## 版本与发布
 
