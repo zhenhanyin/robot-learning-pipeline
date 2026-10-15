@@ -32,6 +32,10 @@ def main(argv: Sequence[str] = None) -> int:
     inspect.add_argument("directory", type=Path)
     validate = commands.add_parser("validate", help="check offline episode integrity")
     validate.add_argument("directory", type=Path)
+    import_piper = commands.add_parser("import-piper-legacy", help="import a legacy Piper recording offline")
+    import_piper.add_argument("source", type=Path)
+    import_piper.add_argument("destination", type=Path)
+    import_piper.add_argument("--tolerance-ms", type=int, default=30)
     annotate = commands.add_parser("annotate-span", help="save one offline annotation span")
     annotate.add_argument("directory", type=Path)
     annotate.add_argument("--annotator", required=True)
@@ -55,6 +59,15 @@ def main(argv: Sequence[str] = None) -> int:
         report = validate_episode(args.directory)
         print(json.dumps(report.to_dict(), indent=2, ensure_ascii=False))
         return 0 if report.valid else 1
+    elif args.command == "import-piper-legacy":
+        from dataclasses import asdict
+
+        from robot_learning.adapters.piper import import_legacy_run
+
+        if args.tolerance_ms < 0:
+            parser.error("tolerance-ms must be non-negative")
+        summary = import_legacy_run(args.source, args.destination, args.tolerance_ms * 1_000_000)
+        print(json.dumps(asdict(summary), indent=2))
     elif args.command == "annotate":
         from robot_learning.apps.annotator import serve
 

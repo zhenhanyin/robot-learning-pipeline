@@ -3,7 +3,7 @@
 import json
 from dataclasses import asdict
 from pathlib import Path
-from typing import Dict, Iterator, Union
+from typing import Dict, Iterator, Optional, Union
 
 from robot_learning.core.models import ActionSource, ArmAction, ArmState, CameraFrame
 
@@ -14,10 +14,13 @@ SCHEMA_VERSION = 1
 
 class JsonlEpisodeWriter:
     def __init__(
-        self, directory: Path, robot_model: str, clock_domain: str, joint_units: str
+        self, directory: Path, robot_model: str, clock_domain: str, joint_units: str,
+        gripper_units: Optional[str] = None,
     ) -> None:
         if not robot_model or not clock_domain or not joint_units:
             raise ValueError("robot_model, clock_domain and joint_units are required")
+        if gripper_units is not None and (not isinstance(gripper_units, str) or not gripper_units):
+            raise ValueError("gripper_units must be non-empty when provided")
         self.directory = Path(directory)
         self.directory.mkdir(parents=True, exist_ok=False)
         (self.directory / "frames").mkdir()
@@ -27,6 +30,8 @@ class JsonlEpisodeWriter:
             "clock_domain": clock_domain,
             "joint_units": joint_units,
         }
+        if gripper_units is not None:
+            metadata["gripper_units"] = gripper_units
         (self.directory / "metadata.json").write_text(
             json.dumps(metadata, indent=2) + "\n", encoding="utf-8"
         )

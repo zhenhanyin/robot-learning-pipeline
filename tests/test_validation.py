@@ -59,10 +59,12 @@ class ValidationTests(unittest.TestCase):
         metadata_path = self.directory / "metadata.json"
         metadata = json.loads(metadata_path.read_text())
         metadata["schema_version"] = True
+        metadata["gripper_units"] = ""
         metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
         save_annotation(self.directory, EpisodeAnnotation("tester", (AnnotationSpan(2, 4, "outside"),)))
         report = validate_episode(self.directory)
         self.assertTrue(any("schema_version" in error for error in report.errors))
+        self.assertTrue(any("gripper_units" in error for error in report.errors))
         self.assertTrue(any("annotation span exceeds frame count" in error for error in report.errors))
 
     def test_rejects_malformed_record_and_symlink(self):

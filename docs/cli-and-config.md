@@ -1,6 +1,6 @@
 # CLI and configuration design
 
-以下硬件命令仍是目标接口，**v0.0.5 尚未实现它们**。当前可运行的离线命令是 `sample`、`inspect`、`validate`、`annotate-span` 和 `annotate`，用法见 README。每个硬件命令只在对应版本完成并经过验证后加入 README 的可运行示例。
+以下硬件命令仍是目标接口，**v0.0.6 尚未实现它们**。当前可运行的离线命令是 `sample`、`inspect`、`validate`、`annotate-span`、`annotate` 和 `import-piper-legacy`，用法见 README。每个硬件命令只在对应版本完成并经过验证后加入 README 的可运行示例。
 
 | 命令 | 用途 | 最早阶段 |
 | --- | --- | --- |
