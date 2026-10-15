@@ -1,6 +1,6 @@
 # Robot Learning Pipeline
 
-面向机械臂数据采集、标注、训练数据导出与策略部署的分阶段开源框架。**v0.0.4 增加本机离线标注 Web**，可对合成 Episode 的帧片段进行标注；只读采集编排可用假设备验证状态、相机和可选动作流。ARX X5 与 Piper 的硬件功能尚未迁入，不能用于控制真机。
+面向机械臂数据采集、标注、训练数据导出与策略部署的分阶段开源框架。**v0.0.5 增加只读 Episode 完整性校验**，可在后续导出或训练前检查合成轨迹的文件、事件与标注。已有本机离线标注 Web 和假设备采集编排；ARX X5 与 Piper 的硬件功能尚未迁入，不能用于控制真机。
 
 原始项目 `Data-Collect-and-Deploy-main` 的三个目录会按功能逐项迁移，不会直接复制整棵旧代码树。首版不包含第三方 SDK、权重或真实采集数据。
 
@@ -20,6 +20,7 @@
 | 离线 Episode、同步、标注模型 | 可用，无硬件依赖 | v0.0.2 |
 | 只读多源采集编排 | 可用，假设备测试通过 | v0.0.3 |
 | 本机离线片段标注 Web | 可用，合成 Episode 测试通过 | v0.0.4 |
+| Episode 完整性校验 | 可用，损坏样本回归通过 | v0.0.5 |
 | Piper 采集、时间同步与标注 | 待迁移 | v0.1.0 |
 | ARX X5 ROS2 采集与回放 | 待迁移 | v0.2.0 |
 | HDF5、LeRobot 导出与训练配置 | 待迁移 | v0.3.0 |
@@ -57,13 +58,14 @@ python -m unittest discover -s tests -v
 python -c "from robot_learning.core import ArmState; print(ArmState('left', 0, (0.0,)))"
 robot-learning sample ./data/demo
 robot-learning inspect ./data/demo
+robot-learning validate ./data/demo
 robot-learning annotate-span ./data/demo --annotator demo --start 0 --end 2 --text "pick object"
 python examples/collect_synthetic.py ./data/collected-demo
 robot-learning inspect ./data/collected-demo
 robot-learning annotate --data-root ./data
 ```
 
-`sample` 生成三帧合成数据；`collect_synthetic.py` 使用只读采集编排生成另一条假设备轨迹。`annotate-span` 使用半开区间 `[start,end)`，标注文件独立于原始事件。`annotate` 仅绑定 `127.0.0.1`，浏览器打开 `http://127.0.0.1:8765/`；详细使用和限制见 [本机标注说明](docs/annotation-web.md)。输出格式见 [离线格式说明](docs/offline-episode.md)。Python API `record_samples()` 的用法和限制见 [采集编排](docs/collection-workflow.md)。硬件采集命令、依赖安装和真机验证步骤会随对应模块一起发布；当前不提供 `robot-learning collect`。
+`sample` 生成三帧合成数据；`collect_synthetic.py` 使用只读采集编排生成另一条假设备轨迹。`validate` 输出 JSON 检查报告，校验失败时退出码为 1；检查范围见 [校验说明](docs/episode-validation.md)。`annotate-span` 使用半开区间 `[start,end)`，标注文件独立于原始事件。`annotate` 仅绑定 `127.0.0.1`，浏览器打开 `http://127.0.0.1:8765/`；详细使用和限制见 [本机标注说明](docs/annotation-web.md)。输出格式见 [离线格式说明](docs/offline-episode.md)。Python API `record_samples()` 的用法和限制见 [采集编排](docs/collection-workflow.md)。硬件采集命令、依赖安装和真机验证步骤会随对应模块一起发布；当前不提供 `robot-learning collect`。
 
 ## 版本与发布
 
