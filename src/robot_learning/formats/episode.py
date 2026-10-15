@@ -1,0 +1,103 @@
+"""Append-only JSONL records with image bytes stored separately."""
+
+import json
+from dataclasses import asdict
+from pathlib import Path
+from typing import Dict, Iterator, Union
+
+from robot_learning.core.models import ActionSource, ArmAction, ArmState, CameraFrame
+
+
+Record = Union[ArmState, ArmAction, CameraFrame]
+SCHEMA_VERSION = 1
+
+
+class JsonlEpisodeWriter:
+    def __init__(
+        self, directory: Path, robot_model: str, clock_domain: str, joint_units: str
+    ) -> None:
+        if not robot_model or not clock_domain or not joint_units:
+            raise ValueError("robot_model, clock_domain and joint_units are required")
+        self.directory = Path(directory)
+        self.directory.mkdir(parents=True, exist_ok=False)
+        (self.directory / "frames").mkdir()
+        metadata = {
+            "schema_version": SCHEMA_VERSION,
+            "robot_model": robot_model,
+            "clock_domain": clock_domain,
+            "joint_units": joint_units,
+        }
+        (self.directory / "metadata.json").write_text(
+            json.dumps(metadata, indent=2) + "\n", encoding="utf-8"
+        )
+        self._events = (self.directory / "events.jsonl").open("w", encoding="utf-8")
+        self._frame_count = 0
+        self._closed = False
+
+    def _append(self, kind: str, record: Record) -> None:
+        if self._closed:
+            raise ValueError("episode writer is closed")
+        data = asdict(record)
+        if isinstance(record, ArmAction):
+            data["source"] = record.source.value
+        if isinstance(record, CameraFrame):
+            filename = "{:06d}.bin".format(self._frame_count)
+            (self.directory / "frames" / filename).write_bytes(record.payload)
+            self._frame_count += 1
+            del data["payload"]
+            data["file"] = filename
+        self._events.write(json.dumps({"type": kind, "data": data}) + "\n")
+        self._events.flush()
+
+    def append_state(self, state: ArmState) -> None:
+        self._append("state", state)
+
+    def append_action(self, action: ArmAction) -> None:
+        self._append("action", action)
+
+    def append_frame(self, frame: CameraFrame) -> None:
+        self._append("frame", frame)
+
+    def close(self) -> None:
+        if not self._closed:
+            self._events.close()
+            self._closed = True
+
+    def __enter__(self) -> "JsonlEpisodeWriter":
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        self.close()
+
+
+class EpisodeReader:
+    def __init__(self, directory: Path) -> None:
+        self.directory = Path(directory)
+        self.metadata: Dict[str, object] = json.loads(
+            (self.directory / "metadata.json").read_text(encoding="utf-8")
+        )
+        if self.metadata.get("schema_version") != SCHEMA_VERSION:
+            raise ValueError("unsupported episode schema_version")
+
+    def records(self) -> Iterator[Record]:
+        with (self.directory / "events.jsonl").open(encoding="utf-8") as events:
+            for line in events:
+                event = json.loads(line)
+                data = event["data"]
+                if event["type"] == "state":
+                    data["joint_positions"] = tuple(data["joint_positions"])
+                    if data["joint_velocities"] is not None:
+                        data["joint_velocities"] = tuple(data["joint_velocities"])
+                    yield ArmState(**data)
+                elif event["type"] == "action":
+                    data["source"] = ActionSource(data["source"])
+                    data["joint_targets"] = tuple(data["joint_targets"])
+                    yield ArmAction(**data)
+                elif event["type"] == "frame":
+                    filename = data.pop("file")
+                    if Path(filename).name != filename or not filename.endswith(".bin"):
+                        raise ValueError("unsafe frame filename")
+                    data["payload"] = (self.directory / "frames" / filename).read_bytes()
+                    yield CameraFrame(**data)
+                else:
+                    raise ValueError("unknown record type")

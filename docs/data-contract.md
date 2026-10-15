@@ -18,4 +18,4 @@
 
 `ArmState` 记录实际设备状态；`ArmAction` 记录训练目标和来源，并强制声明 `ActionSource`。`RobotCommand` 是独立类型，只有它能送给 `RobotAdapter.send_command()`。`NEXT_STATE` 仅用于把相邻状态构造为训练目标；不能被当成已经发送到控制器的命令。现有 ARX 的 `joint_action` 和 Piper 的 `leader_joint` / `follower_joint` 的具体语义，必须在迁移时逐条确认。
 
-`CameraFrame.payload` 表示有编码信息的单帧图像。原始持久化布局、时间同步策略、图像压缩与 Episode 元数据结构将在 Piper 第一批迁移时用真实样本定稿，定稿前不承诺与旧 HDF5 格式直接互换。
+`CameraFrame.payload` 表示有编码信息的单帧图像。v0.0.2 的离线 JSONL 布局是独立的试验格式，详见 [离线格式说明](offline-episode.md)；未覆盖上表全部目标元数据，也不承诺与旧 HDF5 格式直接互换。Piper 第一批真机迁移时再核对单位、时钟和图像编码。
