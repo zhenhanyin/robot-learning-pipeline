@@ -1,0 +1,9 @@
+{
+  "dataset_format": "lerobot_v3",
+  "observation_state_key": "observation.state",
+  "action_key": "action",
+  "camera_feature_prefix": "observation.images.",
+  "action_source": "recorded_or_explicit_next_state",
+  "units": "read_robot_learning_export_json",
+  "fixed_fps_required": true
+}

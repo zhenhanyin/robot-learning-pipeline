@@ -14,9 +14,9 @@
 | `data_collect_arx/main/collect_noop.py` | `src/robot_learning/workflows/` | 采集、静止帧过滤与保存 | HDF5 字段对照、真机录制记录 |
 | `data_collect_arx/main/{replay.py,set_init.py}` | 待定的安全控制模块 | 旧 HDF5→`RobotCmd` 真机运动回放未迁；本版只提供不下发动作的离线预览 | 限位、单位、急停和人工停机验证待办 |
 | `data_collect_arx/inference/` | `src/robot_learning/policies/` | 模型协议和设备发布分离 | 假策略端到端、真机测试 |
-| `data_collect_piper/songlings/dataset_to_hdf5&mp4.py` | `src/robot_learning/formats/hdf5.py` | HDF5 导出 | 旧样本读回与维度检查 |
-| `祖传脚本/Train/VLA/openpi` | `integrations/openpi/` | 提取数据映射和项目配置 | 小样本加载与模型前处理 |
-| `祖传脚本/Train/VLM/LLaMA-Factory` | `integrations/llamafactory/` | 提取 VLM 样本生成脚本和配置 | 图像与文本样本数量校验 |
+| `data_collect_piper/songlings/dataset_to_hdf5&mp4.py` 与 ARX `collect_noop.py` 保存逻辑 | `src/robot_learning/formats/{training,hdf5}.py` | 已重写严格训练样本组装与自有 HDF5 布局；旧 JPEG/左右臂填零格式未照搬 | 合成数据 HDF5 读回通过；真实旧样本字段对照待办 |
+| `祖传脚本/Train/VLA/openpi` | `src/robot_learning/formats/lerobot.py`、`integrations/openpi/` | 可选 LeRobot v3 公共 API 适配与字段映射示例，不复制上游 | 假 LeRobot 写入/读回通过；真实包及 OpenPI 加载待办 |
+| `祖传脚本/Train/VLM/LLaMA-Factory` | `src/robot_learning/formats/vlm.py`、`integrations/llamafactory/` | 按已批准片段生成 ShareGPT 图像数据与 dataset_info，不迁硬编码标签 | 合成图像、文本与配置回归通过；模型加载待办 |
 | `祖传脚本/DataCollection` 和 `祖传脚本/Deploy` | `docs/` | 更新环境与操作说明 | 干净环境按文档复现 |
 
 `data_collect_arx/{ROS,ROS2,py,ARX_VR*,ros2_ws}` 中的上游 SDK、APK、编译产物和 PDF 逐项核对来源。`祖传脚本/Train` 中的上游完整框架不直接进入新仓库。重复的 `copy`、`backup`、`unused` 文件只在能证明确有独立功能时迁移。

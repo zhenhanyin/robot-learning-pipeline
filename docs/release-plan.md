@@ -31,6 +31,8 @@
 
 `v0.2.0` 只满足 P2 的合成 ROS2 消息回放、只读采集入口及相机映射离线回归，作为 **pre-release** 发布。动作来源、关节和夹爪物理单位、真机安全检查尚未确认，因此不实现旧 HDF5→`RobotCmd` 运动回放；真机验收门槛仍未满足。
 
+`v0.3.0` 的自有 HDF5 已用同一合成 Episode 实际写入/读回；LeRobot 导出路径只用注入式 API 假对象完成写入/读回，真实 LeRobot 包和 OpenPI/LLaMA-Factory 模型数据加载尚未验收。因此仅作为 **pre-release** 上传，P3 的“模型数据加载成功”仍未满足。
+
 ## First upload sequence
 
 1. 本地完成 P0 清单并确认项目代码许可证及第三方使用方式。

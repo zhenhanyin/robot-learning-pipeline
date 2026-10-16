@@ -1,6 +1,6 @@
 # CLI and configuration design
 
-`v0.1.0` 新增 Piper 专用命令；`v0.2.0` 新增 ARX ROS2 只读采集和离线消息回放。实时命令只在对应外部 SDK/ROS 已安装时运行，尚未真机复测。离线命令用法见 README；设备参数见 [Piper 说明](piper-ros1-collection.md) 和 [ARX 说明](arx-ros2-collection.md)。
+`v0.1.0` 新增 Piper 专用命令；`v0.2.0` 新增 ARX ROS2 只读采集；`v0.3.0` 新增训练导出。实时命令只在对应外部 SDK/ROS 已安装时运行，尚未真机复测。离线命令用法见 README；数据导出参数见 [训练导出说明](training-export.md)。
 
 | 命令 | 用途 | 最早阶段 |
 | --- | --- | --- |
@@ -12,8 +12,9 @@
 | `robot-learning replay-arx-messages --config configs/arx_x5_ros2.json messages.jsonl ./data/arx-replay` | 将脱敏 ROS2 消息夹具回放为 Episode | P2 |
 | `robot-learning preview-arx ./data/arx-replay` | 校验并列出状态时间轴，不下发动作 | P2 |
 | `robot-learning replay --robot arx_x5 --episode ... --execute` | 真机运动回放，硬件安全验收后再实现 | 待定 |
-| `robot-learning export --input ... --format hdf5` | 导出旧模型使用的 HDF5 | P3 |
-| `robot-learning export --input ... --format lerobot` | 导出 OpenPI 使用的 LeRobot 数据 | P3 |
+| `robot-learning export SOURCE OUTPUT --format hdf5` | 导出自有 HDF5 布局；不是旧 HDF5 的直接替代 | P3 |
+| `robot-learning export SOURCE OUTPUT --format lerobot --repo-id OWNER/NAME --fps 10 --task TASK` | 用外部 LeRobot v3 写入本地数据集 | P3 |
+| `robot-learning build-vlm SOURCE OUTPUT --camera base --instruction TEXT` | 按已批准片段构造 ShareGPT 图像数据 | P3 |
 | `robot-learning deploy --robot arx_x5 --policy pi0 --config ...` | 连接模型服务并执行动作 | P4 |
 
 设备的 ROS1/ROS2 驱动分别在各自进程和环境中启动。CLI 只负责参数校验、接口调用和可读的状态输出；机器人底层控制留在 adapter。`doctor-piper` 和 `doctor-arx` 不连接设备；`collect-piper` 调用旧 SDK `ConnectPort()`，该方法会发送能力查询但不会调用运动控制接口。ARX 的真机运动回放尚未实现。
