@@ -1,6 +1,6 @@
 # Robot Learning Pipeline
 
-面向机械臂数据采集、标注、训练数据导出与策略部署的分阶段开源框架。**v0.4.0 增加四种策略的注入式推理客户端与离线动作安全预览。** 公共核心仍无需硬件或第三方 SDK。当前仅完成合成轨迹、假模型与注入式接口的离线验证；真实模型加载、真机命令发布和硬件验收尚未完成。
+面向机械臂数据采集、标注、训练数据导出与策略部署的分阶段开源框架。**v0.5.0 增加白名单任务编排与本机离线 Web 演示。** 公共核心仍无需硬件或第三方 SDK。当前仅完成合成轨迹、假模型与注入式接口的离线验证；真实模型加载、真机命令发布和硬件验收尚未完成。
 
 原始项目 `Data-Collect-and-Deploy-main` 的三个目录按功能逐项迁移，不直接复制整棵旧代码树。本仓库不包含第三方 SDK、权重或真实采集数据。
 
@@ -27,7 +27,7 @@
 | ARX X5 ROS2 采集与回放 | 离线预发布；只读采集与消息夹具回放通过，真机和运动回放未验收 | v0.2.0 |
 | HDF5、LeRobot 导出与训练配置 | 离线预发布；HDF5 实际读回、LeRobot 注入式测试通过；模型加载待验收 | v0.3.0 |
 | ACT、H-RDT、π0/π0.5 策略与动作控制 | 离线预发布；假模型推理与安全门通过，不下发真机命令 | v0.4.0 |
-| MagicBot 多模型演示编排 | 待评估 | v0.5.0 |
+| MagicBot 多模型任务编排与 Web 演示 | 离线预发布；假语音/VLM/VLA 完整任务和 HTTP 回归通过，未接真机 | v0.5.0 |
 
 ## 代码组织
 
@@ -35,10 +35,10 @@
 src/robot_learning/
   core/                # 数据对象、只读采集和硬件控制接口；仅用标准库
   adapters/            # Piper CAN/ROS1、ARX ROS2 适配器
-  workflows/           # 只读采集、相机帧缓冲与时间戳同步；后续回放编排
+  workflows/           # 只读采集、同步、离线动作预览与白名单任务编排
   formats/             # JSONL Episode、标注、训练样本组装和可选导出
   annotation/          # 本地 Episode 标注存储与校验
-  apps/                # Piper/ARX 采集入口与本机离线标注 Web；后续控制界面
+  apps/                # Piper/ARX 采集入口、本机标注与合成任务 Web
   adapters/piper/       # 旧数据导入、注入式只读 SDK 映射
   adapters/ros1/        # 注入式 ROS1 Image 映射
   adapters/arx_x5/      # 注入式 ROS2 RobotStatus/Image 映射
@@ -51,7 +51,7 @@ docs/                  # 架构、数据协议、迁移与发布计划
 tests/                 # 不依赖真机的契约测试
 ```
 
-目前实现 `core/`、只读采集与离线策略预览 `workflows/`、离线 `formats/`、Piper 旧数据导入、可选 Piper/ARX 采集入口、本机标注 Web 与可选训练导出；ARX 运动回放和真实模型联调尚未实现。详见 [架构说明](docs/architecture.md)、[ARX ROS2 采集](docs/arx-ros2-collection.md)、[训练数据导出](docs/training-export.md)、[策略离线预览](docs/policy-preview.md) 和 [迁移清单](docs/migration.md)。
+目前实现 `core/`、只读采集、离线策略预览与合成任务编排 `workflows/`、离线 `formats/`、Piper 旧数据导入、可选 Piper/ARX 采集入口、本机标注 Web 与可选训练导出；ARX 运动回放和真实模型联调尚未实现。详见 [架构说明](docs/architecture.md)、[训练数据导出](docs/training-export.md)、[策略离线预览](docs/policy-preview.md)、[任务演示](docs/task-demo.md) 和 [迁移清单](docs/migration.md)。
 
 ## 安装与验证
 
@@ -96,6 +96,15 @@ python examples/preview_policy_synthetic.py --model hrdt
 python examples/preview_policy_synthetic.py --model pi0
 python examples/preview_policy_synthetic.py --model pi0.5
 ```
+
+合成任务演示从假语音、假视觉选择到假策略候选动作，均不连接设备：
+
+```bash
+python examples/task_synthetic.py
+robot-learning task-demo --port 8766
+```
+
+第二条启动后仅在本机打开 `http://127.0.0.1:8766/`。网页须逐步“生成提议 → 人工批准 → 离线预览”；“停止”只锁定演示进程，不是设备急停。限制与 HTTP 接口见 [任务演示](docs/task-demo.md)。
 
 `sample` 生成三帧合成数据；三个 `collect_*synthetic.py` 示例验证通用编排、Piper/ROS1 和 ARX/ROS2 注入路径。`validate` 输出 JSON 检查报告，校验失败时退出码为 1；检查范围见 [校验说明](docs/episode-validation.md)。`import-piper-legacy` 只读取旧目录，目标目录必须不存在；格式假设与未迁字段见 [Piper 旧数据导入](docs/piper-legacy-import.md)。`annotate-span` 使用半开区间 `[start,end)`，标注文件独立于原始事件。`annotate` 仅绑定 `127.0.0.1`，浏览器打开 `http://127.0.0.1:8765/`；支持部分编码逐帧预览，详细限制见 [本机标注说明](docs/annotation-web.md)。输出格式见 [离线格式说明](docs/offline-episode.md)。真实环境的可选命令与依赖见 [Piper ROS1 采集](docs/piper-ros1-collection.md) 和 [ARX ROS2 采集](docs/arx-ros2-collection.md)；当前没有通用 `robot-learning collect` 或已验收的真机采集流程。
 

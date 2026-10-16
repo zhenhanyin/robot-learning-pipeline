@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>离线任务演示</title>
+  <link rel="stylesheet" href="/task_demo.css">
+  <script src="/task_demo.js" defer></script>
+</head>
+<body>
+  <main>
+    <h1>离线任务演示</h1>
+    <p class="warning">仅使用合成观测和假模型。不连接机器人、不发布运动命令；页面“停止”不是设备急停。</p>
+    <label for="utterance">任务文本（试试 pick 或 clear）</label>
+    <input id="utterance" maxlength="200" value="pick sample">
+    <div class="actions">
+      <button id="propose" type="button">生成提议</button>
+      <button id="approve" type="button">人工批准</button>
+      <button id="preview" type="button">离线预览</button>
+      <button id="stop" type="button">停止本次演示</button>
+    </div>
+    <h2>任务状态</h2>
+    <pre id="status" aria-live="polite">加载中…</pre>
+  </main>
+</body>
+</html>

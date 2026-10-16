@@ -1,6 +1,6 @@
 # CLI and configuration design
 
-`v0.1.0` 新增 Piper 专用命令；`v0.2.0` 新增 ARX ROS2 只读采集；`v0.3.0` 新增训练导出；`v0.4.0` 新增 Python 注入式策略 API 和四个离线示例，不提供 `deploy` 命令。实时采集命令只在对应外部 SDK/ROS 已安装时运行，尚未真机复测。离线命令用法见 README；数据导出参数见 [训练导出说明](training-export.md)，策略 API 见 [策略离线预览](policy-preview.md)。
+`v0.1.0` 新增 Piper 专用命令；`v0.2.0` 新增 ARX ROS2 只读采集；`v0.3.0` 新增训练导出；`v0.4.0` 新增注入式策略 API；`v0.5.0` 新增合成任务 Web 演示，仍不提供 `deploy` 命令。实时采集命令只在对应外部 SDK/ROS 已安装时运行，尚未真机复测。离线命令用法见 README；训练导出、策略和任务演示分别见对应文档。
 
 | 命令 | 用途 | 最早阶段 |
 | --- | --- | --- |
@@ -15,6 +15,7 @@
 | `robot-learning export SOURCE OUTPUT --format hdf5` | 导出自有 HDF5 布局；不是旧 HDF5 的直接替代 | P3 |
 | `robot-learning export SOURCE OUTPUT --format lerobot --repo-id OWNER/NAME --fps 10 --task TASK` | 用外部 LeRobot v3 写入本地数据集 | P3 |
 | `robot-learning build-vlm SOURCE OUTPUT --camera base --instruction TEXT` | 按已批准片段构造 ShareGPT 图像数据 | P3 |
+| `robot-learning task-demo --port 8766` | 仅本机假语音/VLM/VLA 任务状态页面，无设备执行接口 | P5 |
 | `robot-learning deploy --robot arx_x5 --policy pi0 --config ...` | 真机推理与动作发布，真实模型和硬件安全验收后再实现 | P4 后续 |
 
 设备的 ROS1/ROS2 驱动分别在各自进程和环境中启动。CLI 只负责参数校验、接口调用和可读的状态输出；机器人底层控制留在 adapter。`doctor-piper` 和 `doctor-arx` 不连接设备；`collect-piper` 调用旧 SDK `ConnectPort()`，该方法会发送能力查询但不会调用运动控制接口。ARX 的真机运动回放尚未实现。
