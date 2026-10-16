@@ -10,9 +10,9 @@
 | `data_collect_piper/songlings/{utils.py,data_sample_interface/utils.py}` 与 `data_collect.py` 的保存布局 | `src/robot_learning/adapters/piper/legacy.py` | 按旧二进制/PNG 约定只读导入主从关节、夹爪和图像 | 合成旧格式读写、缺帧和坏文件回归；真实旧录制待核对 |
 | `data_collect_piper/data_anno/` | `src/robot_learning/annotation/` 与 `src/robot_learning/apps/` | 自有标准库本机离线标注与受限逐帧预览；不复制旧 FastAPI/Vue 代码 | 合成轨迹标注和 PNG/原始帧预览通过；真实图像对照待办 |
 | `data_collect_piper/*control_web/` 和 `祖传脚本/Deploy/*control_web/` | `apps/control_web/` | 选择一份基线，合并接口 | HTTP→ROS1 映射测试 |
-| `data_collect_arx/main/utils/ros_operator.py` | `src/robot_learning/adapters/arx_x5/` | ROS2 图像/机械臂状态适配 | 录制消息回放测试 |
+| `data_collect_arx/main/utils/ros_operator.py` | `src/robot_learning/adapters/arx_x5/`、`src/robot_learning/apps/arx_capture.py` | 已迁只读从臂状态、彩色图像、ROS2 订阅与离线消息夹具回放；不迁命令发布 | 合成消息与假 ROS2 测试通过；真实录制和单位待核对 |
 | `data_collect_arx/main/collect_noop.py` | `src/robot_learning/workflows/` | 采集、静止帧过滤与保存 | HDF5 字段对照、真机录制记录 |
-| `data_collect_arx/main/{replay.py,set_init.py}` | `src/robot_learning/workflows/replay.py` | 安全起始姿态与回放 | 限位和人工停机验证 |
+| `data_collect_arx/main/{replay.py,set_init.py}` | 待定的安全控制模块 | 旧 HDF5→`RobotCmd` 真机运动回放未迁；本版只提供不下发动作的离线预览 | 限位、单位、急停和人工停机验证待办 |
 | `data_collect_arx/inference/` | `src/robot_learning/policies/` | 模型协议和设备发布分离 | 假策略端到端、真机测试 |
 | `data_collect_piper/songlings/dataset_to_hdf5&mp4.py` | `src/robot_learning/formats/hdf5.py` | HDF5 导出 | 旧样本读回与维度检查 |
 | `祖传脚本/Train/VLA/openpi` | `integrations/openpi/` | 提取数据映射和项目配置 | 小样本加载与模型前处理 |

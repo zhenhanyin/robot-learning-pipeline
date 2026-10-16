@@ -24,3 +24,6 @@ jobs:
       - run: robot-learning inspect ./data/ci-demo
       - run: python examples/collect_piper_synthetic.py ./data/ci-piper
       - run: robot-learning validate ./data/ci-piper
+      - run: python examples/collect_arx_synthetic.py ./data/ci-arx
+      - run: robot-learning validate ./data/ci-arx
+      - run: robot-learning preview-arx ./data/ci-arx

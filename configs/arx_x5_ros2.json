@@ -1,0 +1,13 @@
+{
+  "follower_status_topic": "/arm_slave_l_status",
+  "cameras": {
+    "left_wrist": "/camera_01/color/image_raw",
+    "head": "/camera_02/color/image_raw"
+  },
+  "attempts": 3,
+  "sample_rate_hz": 30,
+  "sync_tolerance_ms": 30,
+  "camera_wait_ms": 100,
+  "joint_units": "arx_raw_joint_unit_unverified",
+  "gripper_units": "arx_raw_gripper_unit_unverified"
+}

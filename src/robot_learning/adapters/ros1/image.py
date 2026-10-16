@@ -3,16 +3,8 @@
 from threading import Lock
 from typing import Callable
 
+from robot_learning.adapters.image import BYTES_PER_PIXEL
 from robot_learning.core.models import CameraFrame
-
-
-BYTES_PER_PIXEL = {
-    "rgb8": 3,
-    "bgr8": 3,
-    "mono8": 1,
-    "mono16": 2,
-    "16uc1": 2,
-}
 
 
 class LatestMessage:
