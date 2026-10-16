@@ -1,8 +1,8 @@
 # Robot Learning Pipeline
 
-面向机械臂数据采集、标注、训练数据导出与策略部署的分阶段开源框架。**v0.2.0 增加 ARX X5 ROS2 只读采集、相机映射和离线消息回放。** 公共核心仍无需硬件或第三方 SDK。当前仅完成假设备/合成 ROS2 消息的离线验证；没有本版真机验收，不能将其用于无监督的机器人运行。
+面向机械臂数据采集、标注、训练数据导出与策略部署的分阶段开源框架。**v0.3.0 增加 HDF5、可选 LeRobot v3 导出及标注到 VLM 数据构造。** 公共核心仍无需硬件或第三方 SDK。当前仅完成合成轨迹与注入式 LeRobot 接口的离线验证；真实模型加载和真机验收尚未完成。
 
-原始项目 `Data-Collect-and-Deploy-main` 的三个目录会按功能逐项迁移，不会直接复制整棵旧代码树。首版不包含第三方 SDK、权重或真实采集数据。
+原始项目 `Data-Collect-and-Deploy-main` 的三个目录按功能逐项迁移，不直接复制整棵旧代码树。本仓库不包含第三方 SDK、权重或真实采集数据。
 
 ## 设计目标
 
@@ -25,7 +25,7 @@
 | Piper SDK 与 ROS1 Image 只读映射 | 假 SDK/消息回归通过；未连接真机 | v0.0.7 |
 | Piper CAN/ROS1 采集、时间同步与标注 | 离线预发布；假设备与合成轨迹通过，真机数据待核对 | v0.1.0 |
 | ARX X5 ROS2 采集与回放 | 离线预发布；只读采集与消息夹具回放通过，真机和运动回放未验收 | v0.2.0 |
-| HDF5、LeRobot 导出与训练配置 | 待迁移 | v0.3.0 |
+| HDF5、LeRobot 导出与训练配置 | 离线预发布；HDF5 实际读回、LeRobot 注入式测试通过；模型加载待验收 | v0.3.0 |
 | 模型推理与真机执行 | 待迁移 | v0.4.0 |
 | MagicBot 多模型演示编排 | 待评估 | v0.5.0 |
 
@@ -36,7 +36,7 @@ src/robot_learning/
   core/                # 数据对象、只读采集和硬件控制接口；仅用标准库
   adapters/            # Piper CAN/ROS1、ARX ROS2 适配器
   workflows/           # 只读采集、相机帧缓冲与时间戳同步；后续回放编排
-  formats/             # JSONL 原始 Episode 与标注；后续 HDF5、LeRobot
+  formats/             # JSONL Episode、标注、训练样本组装和可选导出
   annotation/          # 本地 Episode 标注存储与校验
   apps/                # Piper/ARX 采集入口与本机离线标注 Web；后续控制界面
   adapters/piper/       # 旧数据导入、注入式只读 SDK 映射
@@ -51,7 +51,7 @@ docs/                  # 架构、数据协议、迁移与发布计划
 tests/                 # 不依赖真机的契约测试
 ```
 
-目前实现 `core/`、只读 `workflows/`、离线 `formats/`、Piper 旧数据导入、可选 Piper/ARX 采集入口和本机标注 Web；ARX 运动回放与控制 Web 尚未实现。详见 [架构说明](docs/architecture.md)、[Piper ROS1 采集](docs/piper-ros1-collection.md)、[ARX ROS2 采集](docs/arx-ros2-collection.md) 和 [迁移清单](docs/migration.md)。
+目前实现 `core/`、只读 `workflows/`、离线 `formats/`、Piper 旧数据导入、可选 Piper/ARX 采集入口、本机标注 Web 与可选训练导出；ARX 运动回放和真实模型联调尚未实现。详见 [架构说明](docs/architecture.md)、[ARX ROS2 采集](docs/arx-ros2-collection.md)、[训练数据导出](docs/training-export.md) 和 [迁移清单](docs/migration.md)。
 
 ## 安装与验证
 
@@ -76,6 +76,17 @@ robot-learning annotate --data-root ./data
 robot-learning import-piper-legacy ./legacy-run ./data/piper-import
 robot-learning validate ./data/piper-import
 ```
+
+训练数据离线示例需要可选依赖；默认只接受明确记录的动作：
+
+```bash
+python -m pip install -e '.[hdf5,vlm]'
+robot-learning export ./data/collected-demo ./data/collected-demo.hdf5 --format hdf5
+robot-learning annotate-span ./data/collected-demo --annotator demo --start 0 --end 4 --text 'pick object' --used-for-vlm
+robot-learning build-vlm ./data/collected-demo ./data/vlm-demo --camera base --instruction 'What is happening?'
+```
+
+`build-vlm` 前须为 Episode 保存 `used_for_vlm=true` 的片段标注；示例输出目录须不存在，重跑请更换路径。LeRobot 的独立安装、固定帧率和读回步骤见 [训练数据导出](docs/training-export.md)。
 
 `sample` 生成三帧合成数据；三个 `collect_*synthetic.py` 示例验证通用编排、Piper/ROS1 和 ARX/ROS2 注入路径。`validate` 输出 JSON 检查报告，校验失败时退出码为 1；检查范围见 [校验说明](docs/episode-validation.md)。`import-piper-legacy` 只读取旧目录，目标目录必须不存在；格式假设与未迁字段见 [Piper 旧数据导入](docs/piper-legacy-import.md)。`annotate-span` 使用半开区间 `[start,end)`，标注文件独立于原始事件。`annotate` 仅绑定 `127.0.0.1`，浏览器打开 `http://127.0.0.1:8765/`；支持部分编码逐帧预览，详细限制见 [本机标注说明](docs/annotation-web.md)。输出格式见 [离线格式说明](docs/offline-episode.md)。真实环境的可选命令与依赖见 [Piper ROS1 采集](docs/piper-ros1-collection.md) 和 [ARX ROS2 采集](docs/arx-ros2-collection.md)；当前没有通用 `robot-learning collect` 或已验收的真机采集流程。
 

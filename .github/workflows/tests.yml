@@ -18,10 +18,13 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
-      - run: python -m pip install -e .
+      - run: python -m pip install -e '.[hdf5,vlm]'
       - run: python -m unittest discover -s tests -v
       - run: python examples/collect_synthetic.py ./data/ci-demo
       - run: robot-learning inspect ./data/ci-demo
+      - run: robot-learning export ./data/ci-demo ./data/ci-demo.hdf5 --format hdf5
+      - run: robot-learning annotate-span ./data/ci-demo --annotator ci --start 0 --end 4 --text 'pick object' --used-for-vlm
+      - run: robot-learning build-vlm ./data/ci-demo ./data/ci-vlm --camera base --instruction 'What is happening?'
       - run: python examples/collect_piper_synthetic.py ./data/ci-piper
       - run: robot-learning validate ./data/ci-piper
       - run: python examples/collect_arx_synthetic.py ./data/ci-arx

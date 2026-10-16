@@ -23,3 +23,5 @@ v0.0.5 增加 [只读完整性检查](episode-validation.md)。检查通过只�
 v0.0.6 可 [导入旧 Piper 录制目录](piper-legacy-import.md)。导入时保留旧整数 tick，并在元数据中显式标注 `joint_units` 与可选 `gripper_units`；没有把 tick 假定为已经校准的 SI 单位。
 
 v0.1.0 可通过 [Piper ROS1 采集入口](piper-ros1-collection.md) 写入同一格式；本机标注页可对受支持的帧编码生成预览，但不更改原始二进制。多相机 Episode 的标注索引仍按所有图像帧事件计数，不是采样步索引。
+
+v0.3.0 可按 [训练数据导出](training-export.md) 转换为自有 HDF5、LeRobot v3 或经人工批准的 VLM 图像样本；这些都是下游派生物，原始 Episode 的 `schema_version` 仍为 1，原始事件不会被改写。

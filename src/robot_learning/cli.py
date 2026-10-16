@@ -53,6 +53,21 @@ def main(argv: Sequence[str] = None) -> int:
     replay_arx.add_argument("directory", type=Path)
     preview_arx = commands.add_parser("preview-arx", help="inspect ARX episode timeline without robot commands")
     preview_arx.add_argument("directory", type=Path)
+    export = commands.add_parser("export", help="export validated episode training data")
+    export.add_argument("source", type=Path)
+    export.add_argument("destination", type=Path)
+    export.add_argument("--format", choices=("hdf5", "lerobot"), required=True)
+    export.add_argument("--action-policy", choices=("recorded", "next-state"), default="recorded")
+    export.add_argument("--tolerance-ms", type=int, default=30)
+    export.add_argument("--fps", type=int)
+    export.add_argument("--repo-id")
+    export.add_argument("--task")
+    build_vlm = commands.add_parser("build-vlm", help="build annotated LLaMA-Factory image dataset")
+    build_vlm.add_argument("source", type=Path)
+    build_vlm.add_argument("destination", type=Path)
+    build_vlm.add_argument("--camera", required=True)
+    build_vlm.add_argument("--instruction", required=True)
+    build_vlm.add_argument("--stride", type=int, default=1)
     annotate = commands.add_parser("annotate-span", help="save one offline annotation span")
     annotate.add_argument("directory", type=Path)
     annotate.add_argument("--annotator", required=True)
@@ -142,6 +157,34 @@ def main(argv: Sequence[str] = None) -> int:
         print(json.dumps({"robot_model": "arx_x5", "joint_units": episode.metadata["joint_units"],
                           "gripper_units": episode.metadata.get("gripper_units"), "states": timeline,
                           "command_published": False}, indent=2))
+    elif args.command == "export":
+        from robot_learning.formats.training import load_training_episode
+
+        try:
+            episode = load_training_episode(args.source, args.action_policy, args.tolerance_ms * 1_000_000)
+            if args.format == "hdf5":
+                from robot_learning.formats.hdf5 import export_hdf5
+
+                count = export_hdf5(episode, args.destination)
+            else:
+                from robot_learning.formats.lerobot import export_lerobot
+
+                if args.fps is None or args.repo_id is None or args.task is None:
+                    parser.error("LeRobot export requires --fps, --repo-id and --task")
+                count = export_lerobot(episode, args.destination, args.repo_id, args.fps, args.task)
+            print(json.dumps({"format": args.format, "samples": count, "action_source": episode.action_source.value}))
+        except (OSError, ValueError, ImportError, KeyError) as error:
+            print(json.dumps({"error": str(error)}, ensure_ascii=False), file=sys.stderr)
+            return 2
+    elif args.command == "build-vlm":
+        from robot_learning.formats.vlm import export_vlm
+
+        try:
+            count = export_vlm(args.source, args.destination, args.camera, args.instruction, args.stride)
+            print(json.dumps({"format": "llamafactory_sharegpt", "samples": count}))
+        except (OSError, ValueError, ImportError, KeyError) as error:
+            print(json.dumps({"error": str(error)}, ensure_ascii=False), file=sys.stderr)
+            return 2
     elif args.command == "annotate":
         from robot_learning.apps.annotator import serve
 

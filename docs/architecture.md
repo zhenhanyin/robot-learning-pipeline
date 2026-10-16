@@ -18,6 +18,7 @@ Camera adapters ─────────────────────�
 - `adapters` 转换设备原生消息；ROS1 与 ROS2 在不同进程和环境中使用相同契约。
 - `workflows` 编排采集、同步、回放；它只依赖 core 接口，不直接解析 CAN 帧。当前 `record_samples()` 仅读取设备，不下发动作。
 - `formats` 负责原始记录和训练格式转换；标注信息独立保存。
+- `formats.training` 先验证并分组 Episode，再分别交给 HDF5、LeRobot 与标注数据导出；LeRobot、NumPy、h5py、Pillow 只在相应导出路径按需加载。
 - `policies` 负责模型协议和动作后处理，输出 `RobotCommand`；设备使能及关节限制留给适配器和运行配置。
 - `apps` 提供 Qt/Web 交互，不承担机械臂协议解析。
 - `apps.piper_capture` 是可选的 ROS1/CAN 进程入口；第三方依赖仅在运行时加载，公共 `workflows` 仍只依赖 core 契约。相机回调与数据写入之间由有界 `FrameBuffer` 隔离。

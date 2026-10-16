@@ -4,7 +4,13 @@
 
 ## Unreleased
 
-- 准备 HDF5/LeRobot 导出和策略数据适配。
+- 准备策略客户端与动作控制边界。
+
+## 0.3.0
+
+- 增加严格的 Episode 训练样本组装，默认要求已记录动作；`next-state` 必须显式启用，保留动作来源和未确认单位。
+- 增加自有 HDF5 导出、可选 LeRobot v3 API 导出，以及按人工批准片段生成 LLaMA-Factory ShareGPT 图像数据。
+- 本地 HDF5 读回、注入式 LeRobot 写入/读回、VLM 图像/配置测试通过；真实 LeRobot/OpenPI/LLaMA-Factory 模型加载未验收，本版为预发布。
 
 ## 0.2.0
 
