@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import sys
 from collections import Counter
 from pathlib import Path
 from typing import Sequence
@@ -36,6 +37,11 @@ def main(argv: Sequence[str] = None) -> int:
     import_piper.add_argument("source", type=Path)
     import_piper.add_argument("destination", type=Path)
     import_piper.add_argument("--tolerance-ms", type=int, default=30)
+    doctor_piper = commands.add_parser("doctor-piper", help="check Piper capture dependencies without connecting")
+    doctor_piper.add_argument("--config", required=True, type=Path)
+    collect_piper = commands.add_parser("collect-piper", help="record Piper CAN and ROS1 streams")
+    collect_piper.add_argument("--config", required=True, type=Path)
+    collect_piper.add_argument("directory", type=Path)
     annotate = commands.add_parser("annotate-span", help="save one offline annotation span")
     annotate.add_argument("directory", type=Path)
     annotate.add_argument("--annotator", required=True)
@@ -68,6 +74,25 @@ def main(argv: Sequence[str] = None) -> int:
             parser.error("tolerance-ms must be non-negative")
         summary = import_legacy_run(args.source, args.destination, args.tolerance_ms * 1_000_000)
         print(json.dumps(asdict(summary), indent=2))
+    elif args.command in ("doctor-piper", "collect-piper"):
+        from dataclasses import asdict
+
+        from robot_learning.apps.piper_capture import (
+            capture_piper_ros1, check_capture_environment, load_capture_config,
+        )
+
+        try:
+            config = load_capture_config(args.config)
+            if args.command == "doctor-piper":
+                checks = check_capture_environment(config)
+                print(json.dumps(checks, indent=2))
+                return 0 if all(checks.values()) else 1
+            summary = capture_piper_ros1(config, args.directory)
+            print(json.dumps(asdict(summary), indent=2))
+            return 0 if summary.written else 1
+        except (OSError, ValueError, ImportError, AttributeError) as error:
+            print(json.dumps({"error": str(error)}, ensure_ascii=False), file=sys.stderr)
+            return 2
     elif args.command == "annotate":
         from robot_learning.apps.annotator import serve
 

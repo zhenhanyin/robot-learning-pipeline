@@ -4,6 +4,7 @@ from typing import Tuple
 
 from robot_learning.adapters.piper.timebase import as_nanoseconds
 from robot_learning.core.models import ActionSource, ArmAction, ArmState
+from robot_learning.core.errors import StaleSampleError
 
 
 def _joints(message: object, field: str) -> Tuple[float, ...]:
@@ -24,7 +25,7 @@ class PiperReadOnlyAdapter:
     def _gripper(self, message: object, field: str, joint_timestamp_ns: int) -> float:
         gripper_timestamp_ns = as_nanoseconds(getattr(message, "time_stamp"), 1)
         if abs(gripper_timestamp_ns - joint_timestamp_ns) > self.max_gripper_skew_ns:
-            raise ValueError("Piper gripper timestamp is outside tolerance")
+            raise StaleSampleError("Piper gripper timestamp is outside tolerance")
         return float(getattr(getattr(message, field), "grippers_angle"))
 
     def read_state(self) -> ArmState:

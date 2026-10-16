@@ -8,6 +8,7 @@ from typing import Type
 from urllib.parse import unquote, urlsplit
 
 from robot_learning.annotation import AnnotationStore
+from robot_learning.apps.preview import frame_preview_png
 
 
 MAX_BODY_BYTES = 65_536
@@ -65,9 +66,15 @@ def make_handler(store: AnnotationStore) -> Type[BaseHTTPRequestHandler]:
             try:
                 if path == "/api/episodes":
                     self._json(200, {"episodes": store.list_episodes()})
+                elif re.fullmatch(r"/api/episodes/[^/]+/frames/[0-9]+", path):
+                    _, _, _, name, _, index = path.split("/")
+                    frame = store.get_frame(name, int(index))
+                    self._send(
+                        200, frame_preview_png(frame.encoding, frame.width, frame.height, frame.payload), "image/png",
+                    )
                 else:
                     self._json(200, store.get_episode(self._episode_name(path)))
-            except (FileNotFoundError, ValueError) as error:
+            except (FileNotFoundError, ValueError, KeyError, TypeError) as error:
                 self._json(404, {"error": str(error)})
 
         def do_PUT(self) -> None:

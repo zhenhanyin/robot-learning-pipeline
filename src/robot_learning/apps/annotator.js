@@ -3,6 +3,23 @@ const annotatorInput = document.querySelector("#annotator");
 const spansTable = document.querySelector("#spans");
 const statusLine = document.querySelector("#status");
 const summaryLine = document.querySelector("#summary");
+const frameIndex = document.querySelector("#frame-index");
+const framePreview = document.querySelector("#frame-preview");
+const frameStatus = document.querySelector("#frame-status");
+
+function showFrame() {
+  const index = Number(frameIndex.value);
+  if (!episodeSelect.value || !Number.isInteger(index) || index < 0 || index > Number(frameIndex.max)) {
+    framePreview.removeAttribute("src");
+    frameStatus.textContent = "请选择有效的图像帧索引";
+    return;
+  }
+  frameStatus.textContent = `图像帧 ${index}`;
+  framePreview.src = `/api/episodes/${encodeURIComponent(episodeSelect.value)}/frames/${index}`;
+}
+
+framePreview.addEventListener("error", () => { frameStatus.textContent = "该帧无法预览或编码不受支持"; });
+frameIndex.addEventListener("change", showFrame);
 
 async function request(path, options) {
   const response = await fetch(path, options);
@@ -52,6 +69,9 @@ async function loadEpisode() {
   try {
     const episode = await request(`/api/episodes/${encodeURIComponent(episodeSelect.value)}`);
     summaryLine.textContent = `${episode.name} · ${episode.frame_count} 帧 · ${episode.metadata.robot_model}`;
+    frameIndex.max = String(Math.max(episode.frame_count - 1, 0));
+    frameIndex.value = "0";
+    showFrame();
     annotatorInput.value = episode.annotation?.annotator || "";
     for (const span of episode.annotation?.spans || []) addSpan(span);
     statusLine.textContent = "";

@@ -13,6 +13,7 @@ from robot_learning.formats.annotation import (
     replace_annotation,
 )
 from robot_learning.formats.episode import EpisodeReader
+from robot_learning.core.models import CameraFrame
 
 
 EPISODE_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\Z")
@@ -75,3 +76,33 @@ class AnnotationStore:
         annotation = EpisodeAnnotation(data.get("annotator"), spans)
         replace_annotation(directory, annotation)
         return asdict(annotation)
+
+    def get_frame(self, name: str, index: int) -> CameraFrame:
+        if type(index) is not int or index < 0:
+            raise ValueError("frame index must be non-negative")
+        directory = self._directory(name)
+        events_path = self._file(directory, "events.jsonl")
+        frame_data = None
+        with events_path.open(encoding="utf-8") as events:
+            for line in events:
+                event = json.loads(line)
+                if event.get("type") == "frame":
+                    if index == 0:
+                        frame_data = event["data"]
+                        break
+                    index -= 1
+        if frame_data is None:
+            raise ValueError("frame index exceeds frame count")
+        filename = frame_data.get("file")
+        if not isinstance(filename, str) or not re.fullmatch(r"[0-9]{6}\.bin", filename):
+            raise ValueError("unsafe frame filename")
+        frames_directory = directory / "frames"
+        if frames_directory.is_symlink() or not frames_directory.is_dir():
+            raise ValueError("frames directory must be regular")
+        frame_path = self._file(frames_directory, filename)
+        if frame_path.stat().st_size > 32_000_000:
+            raise ValueError("preview exceeds size limit")
+        return CameraFrame(
+            frame_data["camera_id"], frame_data["timestamp_ns"], frame_data["encoding"],
+            frame_data["width"], frame_data["height"], frame_path.read_bytes(),
+        )

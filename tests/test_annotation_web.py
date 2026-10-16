@@ -2,6 +2,7 @@ import json
 import tempfile
 import threading
 import unittest
+import zlib
 from http.server import HTTPServer
 from pathlib import Path
 from urllib.error import HTTPError
@@ -61,6 +62,17 @@ class AnnotationStoreTests(unittest.TestCase):
             self.store.set_annotation("demo", {"annotator": "tester", "spans": []})
         self.assertEqual(outside.read_text(encoding="utf-8"), "private")
 
+    def test_frame_access_rejects_symlinks_and_bad_indices(self):
+        frame = self.store.get_frame("demo", 0)
+        self.assertEqual((frame.camera_id, frame.payload), ("base", b"\x00"))
+        with self.assertRaises(ValueError):
+            self.store.get_frame("demo", 3)
+        frame_path = self.root / "demo" / "frames" / "000000.bin"
+        frame_path.unlink()
+        frame_path.symlink_to(self.root / "demo" / "metadata.json")
+        with self.assertRaises(ValueError):
+            self.store.get_frame("demo", 0)
+
 
 class AnnotationHttpTests(unittest.TestCase):
     def setUp(self):
@@ -92,6 +104,10 @@ class AnnotationHttpTests(unittest.TestCase):
             self.assertEqual(self.request(path)[0], 200)
         self.assertEqual(json.loads(self.request("/api/episodes")[1]), {"episodes": ["demo"]})
         self.assertEqual(json.loads(self.request("/api/episodes/demo")[1])["frame_count"], 3)
+        status, preview = self.request("/api/episodes/demo/frames/0")
+        self.assertEqual(status, 200)
+        self.assertTrue(preview.startswith(b"\x89PNG\r\n\x1a\n"))
+        self.assertIn(b"\x00\x00", zlib.decompress(preview[41:-16]))
         annotation = {"annotator": "tester", "spans": [{"start_index": 1, "end_index": 3, "text": "place"}]}
         status, body = self.request(
             "/api/episodes/demo/annotation", "PUT", annotation,

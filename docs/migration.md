@@ -5,10 +5,10 @@
 | 旧位置 | 目标位置 | 迁移任务 | 验收证据 |
 | --- | --- | --- | --- |
 | `data_collect_piper/songlings/piper_interface_v2.py` | `src/robot_learning/adapters/piper/sdk.py` | 已映射外部 SDK 的只读关节/夹爪消息；CAN 初始化与命令仍待迁 | 假 SDK 回归通过；SDK 许可与真机核对待办 |
-| `data_collect_piper/songlings/data_collect.py` | `src/robot_learning/workflows/`、`src/robot_learning/adapters/ros1/` 和 Piper adapter | 已拆开只读编排与 ROS1 原始图像映射；Qt、订阅入口仍待迁 | 合成采集与假 ROS 消息回归通过；真机录制记录待办 |
+| `data_collect_piper/songlings/data_collect.py` | `src/robot_learning/workflows/`、`src/robot_learning/adapters/ros1/`、`src/robot_learning/apps/piper_capture.py` | 已拆出只读编排、缓冲同步、ROS1 订阅与 CAN 初始化入口；旧 Qt 界面不复制 | 假 SDK/ROS1 录制及校验通过；真机录制记录待办 |
 | `data_collect_piper/songlings/converting_utils.py` | `src/robot_learning/workflows/synchronization.py` | 时间戳同步与片段裁剪 | 包含缺帧、乱序样本的测试 |
 | `data_collect_piper/songlings/{utils.py,data_sample_interface/utils.py}` 与 `data_collect.py` 的保存布局 | `src/robot_learning/adapters/piper/legacy.py` | 按旧二进制/PNG 约定只读导入主从关节、夹爪和图像 | 合成旧格式读写、缺帧和坏文件回归；真实旧录制待核对 |
-| `data_collect_piper/data_anno/` | `src/robot_learning/annotation/` 与 `src/robot_learning/apps/` | 先以自有标准库实现本机离线标注；不复制旧 FastAPI/Vue 代码 | 用合成轨迹完成标注并重新读取；真机图像预览待核对 |
+| `data_collect_piper/data_anno/` | `src/robot_learning/annotation/` 与 `src/robot_learning/apps/` | 自有标准库本机离线标注与受限逐帧预览；不复制旧 FastAPI/Vue 代码 | 合成轨迹标注和 PNG/原始帧预览通过；真实图像对照待办 |
 | `data_collect_piper/*control_web/` 和 `祖传脚本/Deploy/*control_web/` | `apps/control_web/` | 选择一份基线，合并接口 | HTTP→ROS1 映射测试 |
 | `data_collect_arx/main/utils/ros_operator.py` | `src/robot_learning/adapters/arx_x5/` | ROS2 图像/机械臂状态适配 | 录制消息回放测试 |
 | `data_collect_arx/main/collect_noop.py` | `src/robot_learning/workflows/` | 采集、静止帧过滤与保存 | HDF5 字段对照、真机录制记录 |

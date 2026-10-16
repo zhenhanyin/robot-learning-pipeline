@@ -10,10 +10,16 @@
 <body>
   <main>
     <h1>离线轨迹标注</h1>
-    <p>仅供本机合成或已授权 Episode 使用；不连接机械臂，也不预览未知编码的图像。</p>
+    <p>仅供本机合成或已授权 Episode 使用；不连接机械臂。未知编码的图像不会预览。</p>
     <label for="episode">Episode</label>
     <select id="episode"></select>
     <p id="summary"></p>
+    <div id="frame-controls">
+      <label for="frame-index">图像帧索引</label>
+      <input id="frame-index" type="number" min="0" step="1" value="0">
+      <img id="frame-preview" alt="当前图像帧预览">
+      <p id="frame-status" role="status"></p>
+    </div>
     <label for="annotator">标注人</label>
     <input id="annotator" type="text" required autocomplete="name">
     <h2>片段</h2>
