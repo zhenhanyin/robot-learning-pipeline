@@ -9,3 +9,4 @@ td input[type="number"] { width: 5rem; }
 td input[type="text"] { width: 100%; box-sizing: border-box; }
 .actions { display: flex; gap: 1rem; margin-top: 1rem; }
 #status { min-height: 1.5rem; }
+#frame-preview { display: block; max-width: 100%; max-height: 360px; margin-top: 1rem; object-fit: contain; }

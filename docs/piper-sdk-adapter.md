@@ -17,4 +17,4 @@ base_camera = Ros1ImageReader("base", base_buffer.get)
 
 `Ros1ImageReader` 接受 ROS1 `sensor_msgs/Image` 兼容对象，要求 `header.stamp.to_nsec()`、紧密排列的行、完整 `data`。支持 `rgb8`、`bgr8`、`mono8`、`mono16`、`16UC1`；16 位编码附加 `;endian=little|big`，原始字节不重编码。压缩图、行填充、未知编码和缺失消息会报错。`LatestMessage` 仅缓存最近消息，不实现时间同步或 ROS 订阅；相机 ID 和 Topic 由调用方绑定。
 
-离线假 SDK、假 ROS 消息及 `record_samples()` 组合验证见 `tests/test_piper_sdk.py`。由于当前没有真机，本版未验证 CAN 初始化、ROS Topic、采样频率、时钟对齐、原始 tick 标定和旧录制一致性；可运行采集入口留待后续版本。
+离线假 SDK、假 ROS 消息及 `record_samples()` 组合验证见 `tests/test_piper_sdk.py`。v0.1.0 在此基础上增加 [可选 Piper ROS1 采集入口](piper-ros1-collection.md) 和缓冲同步；仍未用真机核对 CAN 初始化、ROS Topic、采样频率、时钟对齐、原始 tick 标定和旧录制一致性。

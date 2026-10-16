@@ -1,0 +1,13 @@
+{
+  "sdk_class": "piper_interface_v2:C_PiperInterface_V2",
+  "can_name": "can0",
+  "cameras": {
+    "base": "/ob_camera_02/color/image_raw",
+    "wrist_left": "/ob_camera_01/color/image_raw"
+  },
+  "attempts": 100,
+  "sample_rate_hz": 30,
+  "sync_tolerance_ms": 30,
+  "camera_wait_ms": 100,
+  "include_action": false
+}
