@@ -42,6 +42,17 @@ def main(argv: Sequence[str] = None) -> int:
     collect_piper = commands.add_parser("collect-piper", help="record Piper CAN and ROS1 streams")
     collect_piper.add_argument("--config", required=True, type=Path)
     collect_piper.add_argument("directory", type=Path)
+    doctor_arx = commands.add_parser("doctor-arx", help="check optional ARX ROS2 dependencies")
+    doctor_arx.add_argument("--config", required=True, type=Path)
+    collect_arx = commands.add_parser("collect-arx", help="record read-only ARX ROS2 streams")
+    collect_arx.add_argument("--config", required=True, type=Path)
+    collect_arx.add_argument("directory", type=Path)
+    replay_arx = commands.add_parser("replay-arx-messages", help="replay ROS2 message fixture into an episode offline")
+    replay_arx.add_argument("--config", required=True, type=Path)
+    replay_arx.add_argument("source", type=Path)
+    replay_arx.add_argument("directory", type=Path)
+    preview_arx = commands.add_parser("preview-arx", help="inspect ARX episode timeline without robot commands")
+    preview_arx.add_argument("directory", type=Path)
     annotate = commands.add_parser("annotate-span", help="save one offline annotation span")
     annotate.add_argument("directory", type=Path)
     annotate.add_argument("--annotator", required=True)
@@ -93,6 +104,44 @@ def main(argv: Sequence[str] = None) -> int:
         except (OSError, ValueError, ImportError, AttributeError) as error:
             print(json.dumps({"error": str(error)}, ensure_ascii=False), file=sys.stderr)
             return 2
+    elif args.command in ("doctor-arx", "collect-arx", "replay-arx-messages"):
+        from dataclasses import asdict
+
+        from robot_learning.apps.arx_capture import (
+            capture_arx_ros2, check_arx_environment, load_arx_config, replay_arx_messages,
+        )
+
+        try:
+            config = load_arx_config(args.config)
+            if args.command == "doctor-arx":
+                checks = check_arx_environment()
+                print(json.dumps(checks, indent=2))
+                return 0 if all(checks.values()) else 1
+            if args.command == "collect-arx":
+                summary = capture_arx_ros2(config, args.directory)
+            else:
+                summary = replay_arx_messages(config, args.source, args.directory)
+            print(json.dumps(asdict(summary), indent=2))
+            return 0 if summary.written else 1
+        except (OSError, ValueError, ImportError, AttributeError, RuntimeError, KeyError, TypeError) as error:
+            print(json.dumps({"error": str(error)}, ensure_ascii=False), file=sys.stderr)
+            return 2
+    elif args.command == "preview-arx":
+        report = validate_episode(args.directory)
+        if not report.valid:
+            print(json.dumps(report.to_dict(), ensure_ascii=False), file=sys.stderr)
+            return 1
+        episode = EpisodeReader(args.directory)
+        if episode.metadata["robot_model"] != "arx_x5":
+            print(json.dumps({"error": "not an ARX X5 episode"}), file=sys.stderr)
+            return 2
+        timeline = [
+            {"timestamp_ns": record.timestamp_ns, "joints": len(record.joint_positions), "gripper": record.gripper_position}
+            for record in episode.records() if isinstance(record, ArmState)
+        ]
+        print(json.dumps({"robot_model": "arx_x5", "joint_units": episode.metadata["joint_units"],
+                          "gripper_units": episode.metadata.get("gripper_units"), "states": timeline,
+                          "command_published": False}, indent=2))
     elif args.command == "annotate":
         from robot_learning.apps.annotator import serve
 

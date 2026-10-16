@@ -21,6 +21,7 @@ Camera adapters ─────────────────────�
 - `policies` 负责模型协议和动作后处理，输出 `RobotCommand`；设备使能及关节限制留给适配器和运行配置。
 - `apps` 提供 Qt/Web 交互，不承担机械臂协议解析。
 - `apps.piper_capture` 是可选的 ROS1/CAN 进程入口；第三方依赖仅在运行时加载，公共 `workflows` 仍只依赖 core 契约。相机回调与数据写入之间由有界 `FrameBuffer` 隔离。
+- `apps.arx_capture` 是可选的 ROS2 只读进程入口；`adapters.arx_x5` 只映射消息，不导入 ROS2 驱动。离线 JSONL 消息回放复用同一映射与同步编排，不是运动回放。
 - `integrations` 保存第三方框架的配置、转换脚本和补丁，不复制整个上游代码库。
 
 ## Runtime paths
