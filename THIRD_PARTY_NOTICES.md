@@ -12,4 +12,4 @@
 | LLaMA-Factory | `祖传脚本/Train/VLM/LLaMA-Factory` | 仅保留数据构造、配置；依赖或 fork 上游 | 待核对 |
 | VR APK、预编译 `.so`、模型权重 | 多处 | 默认不进入公开仓库，确需发布时单独审查 | 待核对 |
 
-截至 v0.4.0，本仓库不包含上表中的第三方代码、二进制文件或文档；Piper/ROS1 与 ARX/ROS2 采集入口仅在用户环境中加载外部 SDK/ROS 消息包。HDF5、LeRobot 与 VLM 转换器按需使用外部 NumPy、h5py、Pillow 和 LeRobot 包，不复制其源码；OpenPI/LLaMA-Factory 仅有自有字段说明和数据构造配置。策略客户端只定义注入式调用形状，不包含 ACT、H-RDT、OpenPI 模型实现、权重或外部网络服务。每个未来保留的第三方组件都应记录：上游 URL、commit/tag、许可证、是否修改、修改文件、归属声明和分发方式。根目录 `LICENSE` 仅覆盖本仓库自有内容。
+截至 v0.5.0，本仓库不包含上表中的第三方代码、二进制文件或文档；Piper/ROS1 与 ARX/ROS2 采集入口仅在用户环境中加载外部 SDK/ROS 消息包。HDF5、LeRobot 与 VLM 转换器按需使用外部 NumPy、h5py、Pillow 和 LeRobot 包，不复制其源码；OpenPI/LLaMA-Factory 仅有自有字段说明和数据构造配置。策略客户端只定义注入式调用形状，不包含 ACT、H-RDT、OpenPI 模型实现、权重或外部网络服务。任务演示使用自有假语音/视觉/策略实现，不包含 Whisper、CosyVoice、LLM、VLM、YOLO、OpenPI 客户端源码或权重。每个未来保留的第三方组件都应记录：上游 URL、commit/tag、许可证、是否修改、修改文件、归属声明和分发方式。根目录 `LICENSE` 仅覆盖本仓库自有内容。

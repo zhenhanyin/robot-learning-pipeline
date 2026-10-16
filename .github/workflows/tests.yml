@@ -34,3 +34,5 @@ jobs:
       - run: python examples/preview_policy_synthetic.py --model hrdt
       - run: python examples/preview_policy_synthetic.py --model pi0
       - run: python examples/preview_policy_synthetic.py --model pi0.5
+      - run: python examples/task_synthetic.py
+      - run: robot-learning task-demo --help

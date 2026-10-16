@@ -78,6 +78,8 @@ def main(argv: Sequence[str] = None) -> int:
     annotate_web = commands.add_parser("annotate", help="serve the local offline annotator")
     annotate_web.add_argument("--data-root", required=True, type=Path)
     annotate_web.add_argument("--port", type=int, default=8765)
+    task_demo = commands.add_parser("task-demo", help="serve the synthetic offline task dashboard")
+    task_demo.add_argument("--port", type=int, default=8766)
     args = parser.parse_args(argv)
 
     if args.command == "sample":
@@ -191,6 +193,12 @@ def main(argv: Sequence[str] = None) -> int:
         if not 0 <= args.port <= 65535:
             parser.error("port must be between 0 and 65535")
         serve(args.data_root, args.port)
+    elif args.command == "task-demo":
+        from robot_learning.apps.task_demo import serve
+
+        if not 0 <= args.port <= 65535:
+            parser.error("port must be between 0 and 65535")
+        serve(args.port)
     else:
         episode = EpisodeReader(args.directory)
         frame_count = sum(isinstance(record, CameraFrame) for record in episode.records())
