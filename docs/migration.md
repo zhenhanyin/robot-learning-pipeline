@@ -13,7 +13,7 @@
 | `data_collect_arx/main/utils/ros_operator.py` | `src/robot_learning/adapters/arx_x5/`、`src/robot_learning/apps/arx_capture.py` | 已迁只读从臂状态、彩色图像、ROS2 订阅与离线消息夹具回放；不迁命令发布 | 合成消息与假 ROS2 测试通过；真实录制和单位待核对 |
 | `data_collect_arx/main/collect_noop.py` | `src/robot_learning/workflows/` | 采集、静止帧过滤与保存 | HDF5 字段对照、真机录制记录 |
 | `data_collect_arx/main/{replay.py,set_init.py}` | 待定的安全控制模块 | 旧 HDF5→`RobotCmd` 真机运动回放未迁；本版只提供不下发动作的离线预览 | 限位、单位、急停和人工停机验证待办 |
-| `data_collect_arx/inference/` | `src/robot_learning/policies/` | 模型协议和设备发布分离 | 假策略端到端、真机测试 |
+| `data_collect_arx/inference/{act_infer.py,hrdt_infer.py,pi0_infer.py,utils/client.py}` | `src/robot_learning/policies/client.py`、`src/robot_learning/workflows/policy_preview.py` | 已拆出 ACT/H-RDT/π0/π0.5 模型调用形状、显式相机映射及离线安全门；不复制 pickle 网络协议、上游权重、固定姿态或 ROS 发布逻辑 | 四种假模型、迟到结果、断线与急停回归；真实模型与真机测试待办 |
 | `data_collect_piper/songlings/dataset_to_hdf5&mp4.py` 与 ARX `collect_noop.py` 保存逻辑 | `src/robot_learning/formats/{training,hdf5}.py` | 已重写严格训练样本组装与自有 HDF5 布局；旧 JPEG/左右臂填零格式未照搬 | 合成数据 HDF5 读回通过；真实旧样本字段对照待办 |
 | `祖传脚本/Train/VLA/openpi` | `src/robot_learning/formats/lerobot.py`、`integrations/openpi/` | 可选 LeRobot v3 公共 API 适配与字段映射示例，不复制上游 | 假 LeRobot 写入/读回通过；真实包及 OpenPI 加载待办 |
 | `祖传脚本/Train/VLM/LLaMA-Factory` | `src/robot_learning/formats/vlm.py`、`integrations/llamafactory/` | 按已批准片段生成 ShareGPT 图像数据与 dataset_info，不迁硬编码标签 | 合成图像、文本与配置回归通过；模型加载待办 |

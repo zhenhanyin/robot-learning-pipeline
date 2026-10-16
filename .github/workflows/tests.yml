@@ -30,3 +30,7 @@ jobs:
       - run: python examples/collect_arx_synthetic.py ./data/ci-arx
       - run: robot-learning validate ./data/ci-arx
       - run: robot-learning preview-arx ./data/ci-arx
+      - run: python examples/preview_policy_synthetic.py --model act
+      - run: python examples/preview_policy_synthetic.py --model hrdt
+      - run: python examples/preview_policy_synthetic.py --model pi0
+      - run: python examples/preview_policy_synthetic.py --model pi0.5
