@@ -3,10 +3,10 @@
 import re
 import struct
 from dataclasses import dataclass
-from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import List, Sequence, Tuple
 
+from robot_learning.adapters.piper.timebase import as_nanoseconds
 from robot_learning.core.models import ActionSource, ArmAction, ArmState, CameraFrame
 from robot_learning.formats.episode import JsonlEpisodeWriter
 from robot_learning.workflows.synchronization import synchronize_timestamps
@@ -40,16 +40,6 @@ class LegacyImportSummary:
     cameras: Tuple[str, ...]
 
 
-def _nanoseconds(value: object, scale: int) -> int:
-    try:
-        decimal = Decimal(str(value))
-        if not decimal.is_finite() or decimal < 0:
-            raise ValueError("invalid legacy timestamp")
-        return int(decimal * scale)
-    except (InvalidOperation, TypeError) as error:
-        raise ValueError("invalid legacy timestamp") from error
-
-
 def _regular_file(path: Path) -> Path:
     if path.is_symlink() or not path.is_file():
         raise ValueError("required regular file missing: {}".format(path))
@@ -67,7 +57,7 @@ def _read_stream(path: Path, layout: struct.Struct, timestamp_scale: int) -> Lis
             if len(block) != layout.size:
                 raise ValueError("truncated legacy stream: {}".format(path))
             timestamp, _, *values = layout.unpack(block)
-            records.append(TimedValues(_nanoseconds(timestamp, timestamp_scale), tuple(values)))
+            records.append(TimedValues(as_nanoseconds(timestamp, timestamp_scale), tuple(values)))
     if not records:
         raise ValueError("empty legacy stream: {}".format(path))
     return records
@@ -83,7 +73,7 @@ def _read_images(directory: Path) -> List[TimedImage]:
                 raise ValueError("invalid timestamped PNG filename: {}".format(path))
             continue
         _regular_file(path)
-        timestamp = _nanoseconds(path.stem.replace("_", "."), 1_000_000_000)
+        timestamp = as_nanoseconds(path.stem.replace("_", "."), 1_000_000_000)
         with path.open("rb") as image_file:
             header = image_file.read(33)
         if len(header) < 33 or header[:8] != PNG_SIGNATURE or header[12:16] != b"IHDR":
