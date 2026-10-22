@@ -4,10 +4,12 @@ P0 只定义数据对象和接口，不连接设备。后续启用真机动作�
 
 `record_samples()` 与 `record_buffered_samples()` 只写观测，不调用 `send_command()`。`collect-piper` 会调用外部 SDK 的 `ConnectPort()`：旧 SDK 实现会启动 CAN 读取线程并发送能力/固件查询，不应被描述为“完全不发送 CAN 帧”；本仓库不会调用运动控制接口。使用前仍须核对实际 SDK 版本、CAN 接口、急停与现场安全流程；本版没有真机验证或 ARX 驱动。
 
-`collect-arx` 仅订阅从臂 `RobotStatus` 和相机 `Image`，不创建命令发布器。`replay-arx-messages` 只把脱敏 ROS2 形状的消息夹具写成 Episode；`preview-arx` 只读 Episode。旧 `replay.py` 曾发布 `RobotCmd`，但当前版本没有迁移这条控制路径，也不提供 `--execute`。ARX 单位、起始姿态、限位、急停、控制模式和真实 Topic 均未验收；不能将离线测试当成真机安全批准。
+`collect-arx` 仅订阅从臂 `RobotStatus` 和相机 `Image`，不创建命令发布器。`replay-arx-messages` 只把脱敏 ROS2 形状的消息夹具写成 Episode；`preview-arx` 只读 Episode。`v0.6.0` 增加显式 `--publish --limits` 的 ARX ROS2 命令路径；该路径只通过假 ROS 测试，ARX 单位、起始姿态、限位、急停、控制模式和真实 Topic 均未验收，不能将离线测试当成真机安全批准。
 
 推理超时、模型断线、观测过期、相机掉帧或动作维度不符时，应停止下发动作并将设备切换到制造商推荐的安全状态。远程 Web 控制需要身份验证和网络边界，不可公开暴露设备控制接口。
 
 `v0.4.0` 的 `OfflinePolicyRunner` 仅生成经过配置限位筛选的候选动作，不调用 `send_command()`；`emergency_stop()` 只锁定该进程的预览状态，并非机械臂硬急停。预测耗时检查发生在同步模型调用**返回后**，不能硬中断卡死的推理。把候选动作接入真机前，必须另行实现有独立看门狗、驱动级停机、人工使能、单位与坐标系校验的执行器，并完成现场验收。
 
 `v0.5.0` 的 `task-demo` 仅绑定 `127.0.0.1` 并使用合成数据；网页“批准”只允许离线预览，不授权设备执行。“停止”只锁定当前演示任务，HTTP 服务为单线程，无法中断阻塞的真实模型，更不能替代硬急停。不得把此本机接口暴露为远程控制服务。
+
+未发布的 Piper `control-web` 虽只监听回环地址，却会把 POST 请求转换成 ROS1 服务调用和动作 Topic；没有远程身份验证，不可公网暴露。`PiperCommandAdapter`、`ArxCommandAdapter` 和 `TaskOrchestrator.execute` 已实现可注入的命令发送，但没有设备侧看门狗、独立权限管理或硬件闭环安全认证。测试验证的是假设备映射和拒绝路径，不是可直接上机的安全许可。详见[控制与回放](control-and-replay.md)。

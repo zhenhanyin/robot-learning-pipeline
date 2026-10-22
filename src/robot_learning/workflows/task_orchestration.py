@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from typing import Callable, Mapping, Protocol, Sequence, Tuple
 
 from robot_learning.core.models import ArmState, CameraFrame
+from robot_learning.core.ports import RobotAdapter
+from robot_learning.workflows.motion import dispatch_commands
 from robot_learning.workflows.policy_preview import OfflinePolicyRunner
 
 
@@ -56,11 +58,12 @@ class TaskOrchestrator:
         self.task_id = None
         self.transcript = None
         self.candidate_count = 0
+        self.command_published = False
 
     def status(self) -> dict:
         return {"phase": self.phase, "proposal_id": self.proposal_id if self.task_id else None,
                 "task_id": self.task_id, "transcript": self.transcript,
-                "candidate_count": self.candidate_count, "command_published": False,
+                "candidate_count": self.candidate_count, "command_published": self.command_published,
                 "available_tasks": [{"task_id": task.task_id, "title": task.title}
                                     for task in self.tasks.values()]}
 
@@ -119,6 +122,7 @@ class TaskOrchestrator:
         self.task_id = selected
         self.transcript = transcript
         self.candidate_count = 0
+        self.command_published = False
         self.phase = "awaiting_approval"
         return self.status()
 
@@ -142,3 +146,27 @@ class TaskOrchestrator:
         self.candidate_count = len(commands)
         self.phase = "completed"
         return self.status()
+
+    def execute(self, adapter: RobotAdapter, approved_proposal_id: int) -> dict:
+        if self.phase != "approved" or type(approved_proposal_id) is not int or approved_proposal_id != self.proposal_id:
+            raise TaskError("matching approved proposal is required")
+        try:
+            state, frames, now_ns = self._observation()
+            runner = self.tasks[self.task_id].runner
+            commands = runner.preview(state, frames, now_ns)
+            self.candidate_count = len(commands)
+            self.phase = "executing"
+            for command in commands:
+                if self.phase != "executing":
+                    raise TaskError("task was stopped during execution")
+                fresh_state, _, fresh_now_ns = self._observation()
+                dispatch_commands(adapter, fresh_state, (command,), runner.envelope,
+                                  fresh_now_ns, enabled=True)
+                self.command_published = True
+                if self.phase != "executing":
+                    raise TaskError("task was stopped during execution")
+            self.phase = "completed"
+            return self.status()
+        except Exception as error:
+            self.stop()
+            raise TaskError("task execution failed") from error

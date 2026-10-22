@@ -1,5 +1,6 @@
 """Lossless HDF5 training export with explicit action provenance."""
 
+import json
 import re
 from pathlib import Path
 
@@ -30,6 +31,7 @@ def export_hdf5(episode: TrainingEpisode, destination: Path) -> int:
             output.attrs["export_format"] = "robot_learning_hdf5_v1"
             if "gripper_units" in episode.metadata:
                 output.attrs["gripper_units"] = episode.metadata["gripper_units"]
+            output.attrs["episode_metadata_json"] = json.dumps(episode.metadata, sort_keys=True, allow_nan=False)
             observations = output.create_group("observation")
             actions = output.create_group("action")
             observations.create_dataset("joint_positions", data=np.asarray(
@@ -51,6 +53,12 @@ def export_hdf5(episode: TrainingEpisode, destination: Path) -> int:
                 actions.create_dataset("gripper_target", data=np.asarray(
                     [step.action.gripper_target for step in episode.steps], dtype=np.float64,
                 ))
+            pose_format = episode.steps[0].state.end_effector_pose_format
+            if pose_format is not None:
+                observations.create_dataset("end_effector_pose", data=np.asarray(
+                    [step.state.end_effector_pose for step in episode.steps], dtype=np.float64,
+                ))
+                observations.attrs["end_effector_pose_format"] = pose_format
             image_group = observations.create_group("images")
             byte_type = h5py.vlen_dtype(np.dtype("uint8"))
             text_type = h5py.string_dtype(encoding="utf-8")
@@ -61,10 +69,17 @@ def export_hdf5(episode: TrainingEpisode, destination: Path) -> int:
                 for index, frame in enumerate(frames):
                     payloads[index] = np.frombuffer(frame.payload, dtype=np.uint8)
                 camera.create_dataset("encoding", data=[frame.encoding for frame in frames], dtype=text_type)
+                camera.create_dataset("modality", data=[frame.modality for frame in frames], dtype=text_type)
                 for name in ("width", "height", "timestamp_ns"):
                     camera.create_dataset(name, data=np.asarray(
                         [getattr(frame, name) for frame in frames], dtype=np.int64,
                     ))
+                for name in ("intrinsic_cv", "extrinsic_cv", "cam2world_gl"):
+                    calibration = [getattr(frame, name) for frame in frames]
+                    if any(value is not None for value in calibration):
+                        if any(value is None for value in calibration):
+                            raise ValueError("camera calibration availability changed: " + camera_id + "/" + name)
+                        camera.create_dataset(name, data=np.asarray(calibration, dtype=np.float64))
     except Exception:
         if created:
             destination.unlink(missing_ok=True)

@@ -20,6 +20,8 @@ robot-learning preview-arx ./data/arx-demo
 
 也可用 `robot-learning replay-arx-messages --config configs/arx_x5_ros2.json messages.jsonl ./data/arx-replay`。输入 JSONL 每行只有 `topic` 和 `message`；`message` 保留 ROS2 消息字段结构，例如 `header.stamp.sec/nanosec`、`joint_pos`/`joint_vel` 或 Image 的 `width`、`height`、`step`、`encoding`、`data`。这是用于测试的**脱敏消息夹具回放**，不是 rosbag2 解码器。输出目录须不存在。`preview-arx` 只校验并显示 Episode 的状态时间轴与单位，不发布 ROS2 消息，更不会运动机械臂。
 
+未发布的采集路径还支持可选 `noop_joint_threshold`（原始关节单位），详见[控制与回放](control-and-replay.md)。它不改变旧 JSON 配置的默认行为。
+
 ## 可选实时采集
 
 在已安装并 source ROS2 和 ARX 消息包的环境中：

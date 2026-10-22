@@ -43,7 +43,9 @@ def map_ros2_image(camera_id: str, message: object) -> CameraFrame:
         if type(message.is_bigendian) is not int or message.is_bigendian not in (0, 1):
             raise ValueError("ROS2 16-bit image byte order is required")
         encoding = "{};endian={}".format(encoding, "big" if message.is_bigendian else "little")
-    return CameraFrame(camera_id, ros2_timestamp_ns(message), encoding, width, height, payload)
+    depth_encodings = {"mono16", "16uc1", "32fc1"}
+    modality = "depth" if camera_id.endswith("_depth") or encoding.lower().split(";", 1)[0] in depth_encodings else "rgb"
+    return CameraFrame(camera_id, ros2_timestamp_ns(message), encoding, width, height, payload, modality)
 
 
 class ArxRos2Stream:

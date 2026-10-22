@@ -38,6 +38,10 @@ def export_lerobot(
         raise ValueError("task is required")
     if any(not CAMERA_ID.fullmatch(camera_id) for camera_id in episode.camera_ids):
         raise ValueError("camera IDs must contain only letters, digits and underscores")
+    rgb_camera_ids = tuple(camera_id for camera_id in episode.camera_ids
+                           if episode.steps[0].frames[camera_id].modality == "rgb")
+    if not rgb_camera_ids:
+        raise ValueError("LeRobot export requires at least one RGB camera")
     period_ns = 1_000_000_000 / fps
     timestamps = [step.state.timestamp_ns for step in episode.steps]
     if any(abs((timestamp - timestamps[0]) - index * period_ns) > period_ns * 0.2
@@ -45,9 +49,9 @@ def export_lerobot(
         raise ValueError("state timestamps are not close to the requested constant FPS")
     first_step = episode.steps[0]
     dimensions = {camera_id: (first_step.frames[camera_id].width, first_step.frames[camera_id].height)
-                  for camera_id in episode.camera_ids}
+                  for camera_id in rgb_camera_ids}
     for step in episode.steps:
-        for camera_id in episode.camera_ids:
+        for camera_id in rgb_camera_ids:
             frame = step.frames[camera_id]
             if (frame.width, frame.height) != dimensions[camera_id]:
                 raise ValueError("camera dimensions changed")
@@ -57,6 +61,14 @@ def export_lerobot(
         "observation.state": {"dtype": "float32", "shape": (state_size,), "names": ["state"]},
         "action": {"dtype": "float32", "shape": (state_size,), "names": ["action"]},
     }
+    pose_format = first_step.state.end_effector_pose_format
+    if pose_format is not None:
+        pose_names = ("x", "y", "z", "roll", "pitch", "yaw") if pose_format == "xyz_rpy" else (
+            "x", "y", "z", "qx", "qy", "qz", "qw",
+        )
+        features["observation.end_effector_pose"] = {
+            "dtype": "float32", "shape": (len(pose_names),), "names": list(pose_names),
+        }
     for camera_id, (width, height) in dimensions.items():
         features["observation.images." + camera_id] = {
             "dtype": "image", "shape": (height, width, 3), "names": ["height", "width", "channel"],
@@ -77,7 +89,11 @@ def export_lerobot(
                 "action": np.asarray(action, dtype=np.float32),
                 "task": task,
             }
-            for camera_id in episode.camera_ids:
+            if step.state.end_effector_pose is not None:
+                frame["observation.end_effector_pose"] = np.asarray(
+                    step.state.end_effector_pose, dtype=np.float32,
+                )
+            for camera_id in rgb_camera_ids:
                 frame["observation.images." + camera_id] = rgb_array(step.frames[camera_id])
             dataset.add_frame(frame)
         dataset.save_episode()
@@ -98,6 +114,22 @@ def export_lerobot(
         "source_state_timestamps_ns": timestamps,
         "source_action_timestamps_ns": [step.action.timestamp_ns for step in episode.steps],
         "fps": fps,
+        "rgb_camera_ids": list(rgb_camera_ids),
+        "depth_camera_ids": [camera_id for camera_id in episode.camera_ids
+                             if episode.steps[0].frames[camera_id].modality == "depth"],
+        "end_effector_pose_format": first_step.state.end_effector_pose_format,
+        "camera_calibration": {
+            camera_id: {
+                name: [None if getattr(step.frames[camera_id], name) is None
+                       else list(getattr(step.frames[camera_id], name)) for step in episode.steps]
+                for name in ("intrinsic_cv", "extrinsic_cv", "cam2world_gl")
+                if any(getattr(step.frames[camera_id], name) is not None for step in episode.steps)
+            }
+            for camera_id in episode.camera_ids
+            if any(any(getattr(step.frames[camera_id], name) is not None
+                       for name in ("intrinsic_cv", "extrinsic_cv", "cam2world_gl"))
+                   for step in episode.steps)
+        },
     }
     (destination / "robot_learning_export.json").write_text(
         json.dumps(manifest, indent=2) + "\n", encoding="utf-8",

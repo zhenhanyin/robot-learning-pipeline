@@ -74,6 +74,8 @@ def load_training_episode(directory: Path, action_policy: str = "recorded", tole
             raise ValueError("arm ID or state dimension changed")
         if (state.gripper_position is None) != (first_state.gripper_position is None):
             raise ValueError("gripper availability changed")
+        if state.end_effector_pose_format != first_state.end_effector_pose_format:
+            raise ValueError("end-effector pose availability or format changed")
         if not all(isfinite(value) for value in state.joint_positions):
             raise ValueError("state contains non-finite joints")
         if state.gripper_position is not None and not isfinite(state.gripper_position):

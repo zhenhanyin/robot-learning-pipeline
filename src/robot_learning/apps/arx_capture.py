@@ -4,6 +4,7 @@ import importlib
 import importlib.util
 import json
 from dataclasses import dataclass
+from math import isfinite
 from pathlib import Path
 from threading import Event, Thread
 from types import SimpleNamespace
@@ -12,6 +13,7 @@ from typing import Mapping, Optional
 from robot_learning.adapters.arx_x5 import ArxRos2Stream
 from robot_learning.formats import JsonlEpisodeWriter
 from robot_learning.workflows import CollectionSummary, record_buffered_samples
+from robot_learning.workflows.motion import NoopStateReader
 
 
 @dataclass(frozen=True)
@@ -24,6 +26,7 @@ class ArxCaptureConfig:
     camera_wait_seconds: float
     joint_units: str
     gripper_units: str
+    noop_joint_threshold: float = 0.0
 
 
 def load_arx_config(path: Path) -> ArxCaptureConfig:
@@ -32,8 +35,11 @@ def load_arx_config(path: Path) -> ArxCaptureConfig:
         "follower_status_topic", "cameras", "attempts", "sample_rate_hz",
         "sync_tolerance_ms", "camera_wait_ms", "joint_units", "gripper_units",
     }
-    if not isinstance(data, dict) or set(data) != required:
+    if not isinstance(data, dict) or set(data) not in (required, required | {"noop_joint_threshold"}):
         raise ValueError("invalid ARX capture config fields")
+    threshold = data.get("noop_joint_threshold", 0.0)
+    if isinstance(threshold, bool) or not isinstance(threshold, (int, float)) or not isfinite(threshold) or threshold < 0:
+        raise ValueError("noop_joint_threshold must be non-negative and finite")
     cameras = data["cameras"]
     topics = [data["follower_status_topic"]]
     if not isinstance(cameras, dict) or not cameras or any(
@@ -59,7 +65,7 @@ def load_arx_config(path: Path) -> ArxCaptureConfig:
     return ArxCaptureConfig(
         data["follower_status_topic"], cameras, data["attempts"], data["sample_rate_hz"],
         data["sync_tolerance_ms"] * 1_000_000, data["camera_wait_ms"] / 1000,
-        data["joint_units"], data["gripper_units"],
+        data["joint_units"], data["gripper_units"], float(threshold),
     )
 
 
@@ -77,8 +83,9 @@ def _record(stream: ArxRos2Stream, config: ArxCaptureConfig, destination: Path, 
     with JsonlEpisodeWriter(
         destination, "arx_x5", "ros2_header", config.joint_units, config.gripper_units,
     ) as writer:
+        reader = NoopStateReader(stream, config.noop_joint_threshold) if config.noop_joint_threshold else stream
         return record_buffered_samples(
-            stream, stream.cameras, writer, attempts, config.tolerance_ns,
+            reader, stream.cameras, writer, attempts, config.tolerance_ns,
             config.camera_wait_seconds,
         )
 

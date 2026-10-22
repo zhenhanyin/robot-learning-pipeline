@@ -57,4 +57,6 @@ def map_ros1_image(camera_id: str, message: object) -> CameraFrame:
     timestamp_ns = message.header.stamp.to_nsec()
     if type(timestamp_ns) is not int or timestamp_ns < 0:
         raise ValueError("ROS1 image timestamp must be nanoseconds")
-    return CameraFrame(camera_id, timestamp_ns, encoding, width, height, payload)
+    depth_encodings = {"mono16", "16uc1", "32fc1"}
+    modality = "depth" if camera_id.endswith("_depth") or encoding.lower().split(";", 1)[0] in depth_encodings else "rgb"
+    return CameraFrame(camera_id, timestamp_ns, encoding, width, height, payload, modality)
