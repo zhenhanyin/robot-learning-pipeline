@@ -10,7 +10,8 @@
 | `data_collect_piper/songlings/{utils.py,data_sample_interface/utils.py}` 与 `data_collect.py` 的保存布局 | `src/robot_learning/adapters/piper/legacy.py` | 按旧二进制/PNG 约定只读导入主从关节、夹爪、对齐后的末端姿态、RGB 与可选深度图 | 合成旧格式与深度位宽回归；真实单位仍待核对 |
 | `data_collect_piper/data_anno/` | `src/robot_learning/annotation/` 与 `src/robot_learning/apps/` | 自有标准库本机离线标注与受限逐帧预览；不复制旧 FastAPI/Vue 代码 | 合成轨迹标注和 PNG/原始帧预览通过；真实图像对照待办 |
 | `data_collect_piper/*control_web/` 和 `祖传脚本/Deploy/*control_web/` | `src/robot_learning/apps/control_web.py` | 已按旧服务名和 Topic 重写回环 HTTP→ROS1 映射；不复制旧页面/跨域设置 | 假 ROS 服务、消息映射测试；实际 ROS1 待核对 |
-| `祖传脚本/Deploy/gui_4_2/{main.py,main.qml}` 与 `DeploySystem.md` | `src/robot_learning/workflows/task_orchestration.py`、`src/robot_learning/apps/task_demo.py` | 根据旧文档的语音→视觉→VLA 和停止/返回交互，重写白名单提议、人工批准与仅本机合成预览；旧 `lib/` 在当前源树缺失，不能声称完整移植 | 两个假任务、注入式语音/VLM/VLA、HTTP 状态与拒绝路径回归；真实模型和设备链路待办 |
+| `祖传脚本/Deploy/gui_4_2/{main.py,main.qml}` 与 `DeploySystem.md` | `src/robot_learning/workflows/task_orchestration.py`、`src/robot_learning/apps/{task_demo,operations}.py` | 按可见行为重建语音/文本提议、人工批准、离线预览、任务停止和本机操作台；旧 `lib/` 缺失，模型内部/返回初始位姿实现不可恢复，不能声称源兼容 | 假任务、注入式语音/VLM/VLA、loopback HTTP、采集进程管理和拒绝路径回归；不开放网页设备执行 |
+| `data_collect_arx/ARX_VR*`、`ARX_VR_SDK/ROS2` | `src/robot_learning/adapters/teleop.py`、`docs/teleoperation.md` | 仅迁移 VR 位姿/按键到 teleop 输入契约、deadman/时序和显式命令边界；不复制 Quest APK、预编译 `.so`、ROS 工作空间或 IK | 假 VR 帧映射、deadman、重放/时效/限位拒绝测试；厂商设备、标定与真机待核对 |
 | `data_collect_arx/main/utils/ros_operator.py` | `src/robot_learning/adapters/arx_x5/`、`src/robot_learning/apps/arx_capture.py` | 已迁只读从臂状态、彩色图像、ROS2 订阅与离线消息夹具回放；另有显式命令适配器 | 合成消息、假 ROS2 与命令映射测试；单位和真机待核对 |
 | `data_collect_arx/main/collect_noop.py` | `src/robot_learning/adapters/arx_x5/legacy.py`、`src/robot_learning/workflows/motion.py`、`src/robot_learning/apps/arx_capture.py` | 旧 HDF5 左臂关节/夹爪、末端姿态、JPEG 与逐帧相机标定导入；空点云记录来源形状，非空点云在格式确认前拒绝 | 旧 `episode0.hdf5` 离线导入、校验和训练导出通过；单位与动作语义仍待确认 |
 | `data_collect_arx/main/{replay.py,set_init.py}` | `src/robot_learning/apps/arx_replay.py`、`src/robot_learning/adapters/arx_x5/command.py` | 已重写旧 HDF5→`RobotCmd` 显式发布和从当前状态插值；默认只预览，限位配置由使用者提供 | 假发布与越界拒绝测试；真机停机/限位验收待办 |
@@ -18,10 +19,10 @@
 | `data_collect_piper/songlings/dataset_to_hdf5&mp4.py` 与 ARX `collect_noop.py` 保存逻辑 | `src/robot_learning/formats/{training,hdf5}.py` | 已重写严格训练样本组装与自有 HDF5 布局；保存末端姿态、深度模态和相机标定，不导入右臂填零作为真实状态 | 合成与旧 ARX 样本 HDF5 读回通过；真实单位待核对 |
 | ARX `main/{process_gripper.py,calc_stat.py,replay_smooth.py}` 与 Piper `video_preprocess.py` | `src/robot_learning/formats/{preprocessing,video}.py` | 新建动作统计、归一化 API、夹爪平滑副本与均匀抽帧视频写入 | 合成 HDF5 回归；真实 OpenCV 视频解码待验证 |
 | `祖传脚本/Train/VLA/openpi` | `src/robot_learning/formats/lerobot.py`、`integrations/openpi/` | 可选 LeRobot v3 公共 API 适配与字段映射示例，不复制上游 | 假 LeRobot 写入/读回通过；真实包及 OpenPI 加载待办 |
-| `祖传脚本/Train/VLM/LLaMA-Factory` | `src/robot_learning/formats/vlm.py`、`integrations/llamafactory/` | 按已批准片段生成 ShareGPT 图像数据与 dataset_info，不迁硬编码标签 | 合成图像、文本与配置回归通过；模型加载待办 |
+| `祖传脚本/Train/VLM/LLaMA-Factory`、`祖传脚本/Algo/GR00T` | `src/robot_learning/formats/vlm.py`、`integrations/llamafactory/`、`src/robot_learning/policies/manifest.py` | 生成自有 ShareGPT 数据结构，模型只通过外部 backend/manifest 接入；不迁整套训练框架、补丁、权重或 GR00T 专属代码 | 合成数据和 fake backend 回归通过；真实 trainer/checkpoint 未验收 |
 | `祖传脚本/DataCollection` 和 `祖传脚本/Deploy` | `docs/` | 更新环境与操作说明 | 干净环境按文档复现 |
 
-`data_collect_arx/{ROS,ROS2,py,ARX_VR*,ros2_ws}` 中的上游 SDK、APK、编译产物和 PDF 逐项核对来源。`祖传脚本/Train` 中的上游完整框架不直接进入新仓库。`祖传脚本/Algo` 和 `Preliminary` 当前仅见文档与图片，仍需逐文档核对需不需要保留。重复的 `copy`、`backup`、`unused` 文件只在能证明确有独立功能时迁移。P6 迁移内容归入 `v0.6.0`，不回写到已发布的 `v0.5.0`。
+`data_collect_arx/{ROS,ROS2,py,ARX_VR*,ros2_ws}` 中的上游 SDK、APK、编译产物、图片和 PDF 不复制。`祖传脚本/Train` 中的上游完整框架不直接进入新仓库；GR00T README 仅是外部安装/补丁教程，不代表本仓库支持 GR00T。`祖传脚本/Preliminary` 和 QuickStart 为 ROS/Slurm/旧部署命令参考，不包含独立运行时代码；已纳入[旧源代码审计](legacy-audit.md)，不原样发布旧截图、地址和环境命令。重复的 `copy`、`backup`、`unused` 文件不迁移。各版本按 `v0.6.0`、`v0.7.0`、`v0.8.0` 分段实现，不回写历史 tag。
 
 ## Cross-device decisions before implementation
 

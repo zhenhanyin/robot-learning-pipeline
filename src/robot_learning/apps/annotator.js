@@ -114,6 +114,8 @@ request("/api/episodes").then(data => {
     option.textContent = name;
     episodeSelect.append(option);
   }
+  const requestedEpisode = new URLSearchParams(window.location.search).get("episode");
+  if (requestedEpisode && data.episodes.includes(requestedEpisode)) episodeSelect.value = requestedEpisode;
   if (data.episodes.length) loadEpisode();
   else statusLine.textContent = "数据目录中尚无 Episode";
 }).catch(error => { statusLine.textContent = error.message; });

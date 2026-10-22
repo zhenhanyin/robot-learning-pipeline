@@ -1,0 +1,14 @@
+{
+  "profiles": [
+    {
+      "profile_id": "piper-example",
+      "robot": "piper",
+      "config_path": "piper_ros1.json"
+    },
+    {
+      "profile_id": "arx-example",
+      "robot": "arx_x5",
+      "config_path": "arx_x5_ros2.json"
+    }
+  ]
+}

@@ -57,6 +57,16 @@ def dispatch_commands(adapter: RobotAdapter, state: ArmState, commands: Sequence
                       envelope: SafetyEnvelope, now_ns: int, enabled: bool = False) -> int:
     if not enabled:
         raise SafetyStop("command dispatch requires explicit enable")
+    validate_commands(state, commands, envelope, now_ns)
+    for command in commands:
+        adapter.send_command(command)
+    return len(commands)
+
+
+def validate_commands(state: ArmState, commands: Sequence[RobotCommand],
+                      envelope: SafetyEnvelope, now_ns: int) -> None:
+    if type(now_ns) is not int or now_ns < 0:
+        raise SafetyStop("invalid command clock")
     if not 0 <= now_ns - state.timestamp_ns <= envelope.max_observation_age_ns:
         raise SafetyStop("state is stale or from the future")
     if state.arm_id != envelope.arm_id or len(state.joint_positions) != len(envelope.joint_min):
@@ -90,6 +100,3 @@ def dispatch_commands(adapter: RobotAdapter, state: ArmState, commands: Sequence
             raise SafetyStop("command exceeds gripper limit or maximum step")
         previous_joints = command.joint_targets
         previous_gripper = command.gripper_target
-    for command in commands:
-        adapter.send_command(command)
-    return len(commands)

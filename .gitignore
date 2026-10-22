@@ -18,6 +18,7 @@ apps/annotator/frontend/dist/
 data/
 datasets/
 recordings/
+operations-logs/
 checkpoints/
 weights/
 *.hdf5
