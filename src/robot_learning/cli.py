@@ -114,6 +114,11 @@ def main(argv: Sequence[str] = None) -> int:
     training_plan = commands.add_parser("validate-training-plan", help="validate framework-neutral model training configuration")
     training_plan.add_argument("plan", type=Path)
     training_plan.add_argument("--check-paths", action="store_true")
+    operations = commands.add_parser("operations", help="serve the loopback capture, episode, annotation, and task console")
+    operations.add_argument("--data-root", required=True, type=Path)
+    operations.add_argument("--profiles", type=Path)
+    operations.add_argument("--task-factory")
+    operations.add_argument("--port", type=int, default=8768)
     args = parser.parse_args(argv)
 
     if args.command == "sample":
@@ -194,6 +199,16 @@ def main(argv: Sequence[str] = None) -> int:
                               "paths_checked": args.check_paths}, ensure_ascii=False))
         except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError) as error:
             print(json.dumps({"valid": False, "error": str(error)}, ensure_ascii=False), file=sys.stderr)
+            return 2
+    elif args.command == "operations":
+        from robot_learning.apps.operations import serve
+
+        if not 0 <= args.port <= 65535:
+            parser.error("port must be between 0 and 65535")
+        try:
+            serve(args.data_root, args.port, args.profiles, args.task_factory)
+        except (OSError, ValueError, ImportError, AttributeError, TypeError) as error:
+            print(json.dumps({"error": str(error)}, ensure_ascii=False), file=sys.stderr)
             return 2
     elif args.command in ("doctor-piper", "collect-piper"):
         from dataclasses import asdict

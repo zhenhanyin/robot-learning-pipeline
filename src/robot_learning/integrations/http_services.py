@@ -77,6 +77,9 @@ class SpeechToTextHttpClient(_JsonService):
             raise ValueError("speech service returned an invalid transcript")
         return transcript.strip()
 
+    def transcribe_with_content_type(self, audio: bytes, content_type: str) -> str:
+        return self.transcribe(audio, content_type)
+
 
 class VisionTaskHttpClient(_JsonService):
     def __init__(self, endpoint: str, allowed_tasks: Sequence[str], timeout_seconds: float = 10.0,

@@ -44,7 +44,7 @@
 
 `v0.7.0` 提供外部 checkpoint manifest、严格观察/动作维度和单位校验、状态/动作仿射归一化、HTTPS 语音/VLM/VLA 客户端及框架无关训练计划。使用 fake transport/backend 回归请求、响应和拒绝路径；仓库不含真实模型权重或服务凭据，未宣称真实 checkpoint/服务端到端验收。模型接入示例见 `docs/model-services.md`。
 
-`v0.8.0` 完成旧项目自有操作流程的代码迁移，旧 Qt/网页界面按新架构重建；VR SDK、机器人驱动等上游依赖独立安装。发布标签标明离线验证与硬件验收状态。
+`v0.8.0` 增加 loopback 操作台、采集子进程管理、同机 Episode 标注 API、注入式语音任务提议/批准/离线预览，以及 vendor-neutral VR deadman gate；补齐旧目录审计。129 项全量离线回归、wheel 构建与临时 target 安装通过；HTTP/进程/假 VR 回归通过，网页无设备执行路由。旧 Qt `lib/` 缺失模块、VR SDK/IK/Quest APK 和第三方训练框架不复制。真实设备、VR校准、硬件急停和语音/模型服务仍未验收，版本按 **pre-release** 标记。
 
 ## First upload sequence
 

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Robot Learning 操作台</title>
+  <link rel="stylesheet" href="/operations.css">
+  <script src="/operations.js" defer></script>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Robot Learning 操作台</h1>
+        <p>本机采集会话、Episode 校验、离线标注与任务预览。</p>
+      </div>
+      <button id="refresh" type="button">刷新状态</button>
+    </header>
+    <p class="warning">仅绑定本机回环地址。采集停止不等于机械臂急停；任务页面只提供批准与离线预览，不提供设备执行接口。</p>
+    <section class="grid">
+      <article>
+        <h2>采集会话</h2>
+        <label for="profile">已配置采集 profile</label>
+        <div class="row">
+          <select id="profile"></select>
+          <button id="capture-start" type="button">开始只读采集</button>
+        </div>
+        <label for="session">运行中的会话</label>
+        <div class="row">
+          <select id="session"></select>
+          <button id="capture-stop" type="button">停止采集</button>
+        </div>
+        <p class="muted">停止操作向采集进程发送 SIGINT；不会发送机械臂运动命令。</p>
+        <pre id="capture-status" aria-live="polite">加载中…</pre>
+      </article>
+      <article>
+        <h2>Episode 与标注</h2>
+        <p><a href="/annotate">打开本机标注器</a></p>
+        <div id="episodes" class="episode-list" aria-live="polite">加载中…</div>
+      </article>
+      <article class="task-panel">
+        <h2>语音 / 任务预览</h2>
+        <label for="utterance">任务文本</label>
+        <input id="utterance" maxlength="200" autocomplete="off">
+        <div class="row">
+          <button id="propose" type="button">生成提议</button>
+          <button id="record" type="button">录音提议</button>
+        </div>
+        <div class="row">
+          <button id="approve" type="button">人工批准</button>
+          <button id="preview" type="button">离线预览</button>
+          <button id="task-stop" type="button">停止任务</button>
+        </div>
+        <p class="muted">需要通过 `--task-factory` 注入语音、视觉和策略服务。任务停止只锁定本地 runner，不是硬件急停。</p>
+        <pre id="task-status" aria-live="polite">尚未读取任务状态</pre>
+      </article>
+    </section>
+    <p id="message" aria-live="polite"></p>
+  </main>
+</body>
+</html>

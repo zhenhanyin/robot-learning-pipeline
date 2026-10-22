@@ -1,12 +1,14 @@
 # Robot Learning Pipeline
 
-面向机械臂数据采集、标注、训练数据导出与策略部署的分阶段开源框架。**v0.7.0 增加外部模型/服务适配和 checkpoint 配置校验。** 公共核心仍无需硬件或第三方 SDK；真机控制和真实模型验证按可选集成接入。
+面向机械臂数据采集、标注、训练数据导出与策略部署的分阶段开源框架。**v0.8.0 补齐本机操作台、任务预览和 VR/遥操作输入接口。** 公共核心仍无需硬件或第三方 SDK；真机控制和真实模型验证按可选集成接入。
 
 原始项目 `Data-Collect-and-Deploy-main` 的三个目录按功能逐项迁移，不直接复制整棵旧代码树。本仓库不包含第三方 SDK、权重或真实采集数据。
 
 `v0.6.0` 已增加 Piper/ARX 命令适配器、ROS1 控制接口、ARX HDF5 导入与显式回放、末端姿态和相机标定保存、深度帧处理、HDF5 统计/平滑/视频预处理入口。代码经过离线测试；真实 MP4 解码、模型服务和重组版真机控制尚未验收。详见[控制与回放](docs/control-and-replay.md)和[数据预处理](docs/data-preprocessing.md)。
 
 `v0.7.0` 增加 ACT/H-RDT/π0/π0.5 的外部 checkpoint 清单与维度/单位/归一化约束、HTTPS 语音/VLM/VLA 服务协议和训练计划 schema。服务只经显式注入启用，真实 endpoint、模型权重及训练器不包含在仓库内；细节见[模型与服务集成](docs/model-services.md)。
+
+`v0.8.0` 将采集进程、Episode 校验/标注和任务提议/批准/离线预览汇总到 loopback 操作台，并提供 vendor-neutral VR deadman gate。旧 Qt/VR 厂商 SDK、IK、真机复位行为和物理验收仍由使用者集成验证；详见[操作台](docs/operations-console.md)、[遥操作边界](docs/teleoperation.md)和[旧源代码审计](docs/legacy-audit.md)。
 
 ## 设计目标
 
@@ -35,7 +37,7 @@
 | 末端姿态、相机标定和深度字段 | 离线导入与 HDF5 导出回归通过；单位仍按源数据声明 | v0.6.0 |
 | 旧 HDF5 统计、夹爪平滑和 MP4 预处理 | 输出写新文件；离线假解码测试通过 | v0.6.0 |
 | 真实 checkpoint 和语音/VLM/VLA 接入 | 外部适配协议与 manifest 完成；服务/权重未在本环境验收 | v0.7.0 |
-| 采集/标注操作 UI、VR 接口与迁移收尾 | 按旧流程重建；上游 SDK 单独安装 | v0.8.0 |
+| 采集/标注操作 UI、任务管理和 VR/遥操作入口 | loopback 操作台与注入式 deadman gate 已实现；厂商 SDK/IK 未打包 | v0.8.0 |
 
 ## 代码组织
 
@@ -43,11 +45,13 @@
 src/robot_learning/
   core/                # 数据对象、只读采集和硬件控制接口；仅用标准库
   adapters/            # Piper CAN/ROS1、ARX ROS2 适配器
+  adapters/teleop.py   # vendor-neutral VR/遥操作门控
   workflows/           # 只读采集、同步、离线动作预览与白名单任务编排
   formats/             # JSONL Episode、标注、训练样本组装和可选导出
   integrations/        # 外部语音、视觉规划、策略 HTTP 协议
   annotation/          # 本地 Episode 标注存储与校验
   apps/                # Piper/ARX 采集入口、本机标注与合成任务 Web
+  apps/operations.py   # 本机采集/标注/任务操作台
   adapters/piper/       # 旧数据导入、注入式只读 SDK 映射
   adapters/ros1/        # 注入式 ROS1 Image 映射
   adapters/arx_x5/      # 注入式 ROS2 RobotStatus/Image 映射
@@ -84,6 +88,7 @@ robot-learning preview-arx ./data/arx-synthetic
 robot-learning annotate --data-root ./data
 robot-learning import-piper-legacy ./legacy-run ./data/piper-import
 robot-learning validate ./data/piper-import
+robot-learning operations --data-root ./data --profiles configs/operations_profiles.example.json
 ```
 
 训练数据离线示例需要可选依赖；默认只接受明确记录的动作：
@@ -127,6 +132,8 @@ robot-learning task-demo --port 8766
 第二条启动后仅在本机打开 `http://127.0.0.1:8766/`。网页须逐步“生成提议 → 人工批准 → 离线预览”；“停止”只锁定演示进程，不是设备急停。限制与 HTTP 接口见 [任务演示](docs/task-demo.md)。
 
 `sample` 生成三帧合成数据；三个 `collect_*synthetic.py` 示例验证通用编排、Piper/ROS1 和 ARX/ROS2 注入路径。`validate` 输出 JSON 检查报告，校验失败时退出码为 1；检查范围见 [校验说明](docs/episode-validation.md)。`import-piper-legacy` 只读取旧目录，目标目录必须不存在；格式假设与未迁字段见 [Piper 旧数据导入](docs/piper-legacy-import.md)。`annotate-span` 使用半开区间 `[start,end)`，标注文件独立于原始事件。`annotate` 仅绑定 `127.0.0.1`，浏览器打开 `http://127.0.0.1:8765/`；支持部分编码逐帧预览，详细限制见 [本机标注说明](docs/annotation-web.md)。输出格式见 [离线格式说明](docs/offline-episode.md)。真实环境的可选命令与依赖见 [Piper ROS1 采集](docs/piper-ros1-collection.md) 和 [ARX ROS2 采集](docs/arx-ros2-collection.md)；当前没有通用 `robot-learning collect` 或已验收的真机采集流程。
+
+`operations` 把只读采集进程管理、Episode 校验、标注和任务预览合并在 `http://127.0.0.1:8768/`。采集 profile 必须核对真实 SDK/Topic；任务服务通过可信 factory 注入。网页没有机械臂动作执行端点，停止采集或任务都不是硬件急停。配置与边界见 [操作台说明](docs/operations-console.md)。
 
 ## 版本与发布
 

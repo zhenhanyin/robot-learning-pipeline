@@ -23,7 +23,8 @@ Camera adapters ─────────────────────�
 - `policies` 负责加载外部 checkpoint manifest、观测映射/仿射归一化和动作维度校验，输出候选 `RobotCommand`；`workflows.policy_preview` 仍是离线筛选边界。设备使能、真实限位及制造商安全停机仍待真机集成。
 - `integrations.http_services` 提供可选 HTTPS 语音、视觉提议和策略推理协议；密钥由环境变量注入，核心模块不依赖或复制供应商 SDK。
 - `workflows.task_orchestration` 用 allowlist 和人工批准连接语音、视觉规划与策略预览；Python API 可经显式 `execute()` 调用已注入的设备适配器。内置 `apps.task_demo` 只接合成假实现，不暴露执行接口。
-- `apps` 提供 Qt/Web 交互，不承担机械臂协议解析。
+- `apps` 提供本机 HTTP 操作台、标注和合成任务页面；不承担机器人协议解析。操作台仅启动 allowlist 中的只读采集进程，任务 Web 不提供设备命令执行端点。
+- `adapters.teleop` 将厂商 VR 输入规整为带 deadman/时序信息的帧，经显式 pose-to-command mapper 和 SafetyEnvelope 门控；不包含 IK、校准或设备 SDK。
 - `apps.piper_capture` 是可选的 ROS1/CAN 进程入口；第三方依赖仅在运行时加载，公共 `workflows` 仍只依赖 core 契约。相机回调与数据写入之间由有界 `FrameBuffer` 隔离。
 - `apps.arx_capture` 是可选的 ROS2 只读进程入口；`adapters.arx_x5` 只映射消息，不导入 ROS2 驱动。离线 JSONL 消息回放复用同一映射与同步编排，不是运动回放。
 - `integrations` 保存外部协议、框架配置和转换脚本，不复制整个上游代码库；第三方依赖只在集成入口按需加载。

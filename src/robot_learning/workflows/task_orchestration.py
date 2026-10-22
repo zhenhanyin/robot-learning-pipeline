@@ -84,13 +84,15 @@ class TaskOrchestrator:
             raise TaskError("camera frames are missing, stale or from the future")
         return state, frames, now_ns
 
-    def propose_audio(self, audio: bytes) -> dict:
+    def propose_audio(self, audio: bytes, content_type: str = "application/octet-stream") -> dict:
         if self.phase not in ("idle", "completed"):
             raise TaskError("task is not ready for a new proposal")
         if not isinstance(audio, bytes) or not 0 < len(audio) <= 1_048_576:
             raise ValueError("audio input must be 1 to 1048576 bytes")
         try:
-            transcript = self.speech.transcribe(audio)
+            transcribe_with_type = getattr(self.speech, "transcribe_with_content_type", None)
+            transcript = (transcribe_with_type(audio, content_type) if callable(transcribe_with_type)
+                          else self.speech.transcribe(audio))
         except Exception as error:
             self.stop()
             raise TaskError("speech recognition failed") from error
