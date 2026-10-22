@@ -48,21 +48,29 @@ class ModelPolicyClient:
             raise ValueError("state joint dimension differs from policy spec")
         if self.spec.gripper_in_action != (state.gripper_position is not None):
             raise ValueError("state gripper availability differs from policy spec")
+        if any(not isfinite(value) for value in state.joint_positions) or (
+                state.gripper_position is not None and not isfinite(state.gripper_position)):
+            raise ValueError("policy state must contain finite values")
         by_id = {frame.camera_id: frame for frame in frames}
         if len(by_id) != len(frames) or set(by_id) != set(self.spec.camera_map.values()):
             raise ValueError("camera set differs from policy spec")
+        if any(by_id[source_name].modality != "rgb" for source_name in self.spec.camera_map.values()):
+            raise ValueError("policy camera inputs must be RGB frames")
         images = {model_name: self.encode_frame(by_id[source_name])
                   for model_name, source_name in self.spec.camera_map.items()}
         if any(image is None for image in images.values()):
             raise ValueError("camera encoder returned no image")
+        state_vector = state.joint_positions
+        if self.spec.gripper_in_action:
+            state_vector += (state.gripper_position,)
         if self.spec.model == "act":
-            observation = {"qpos": state.joint_positions, "images": images}
+            observation = {"qpos": state_vector, "images": images}
             result = self.backend.get_chunk(observation)
         elif self.spec.model == "hrdt":
-            observation = {"puppet_left": state.joint_positions, "images": images}
+            observation = {"puppet_left": state_vector, "images": images}
             result = self.backend.predict_action(observation)
         else:
-            observation = {"state": state.joint_positions, "images": images, "prompt": self.spec.prompt}
+            observation = {"state": state_vector, "images": images, "prompt": self.spec.prompt}
             response = self.backend.infer(observation)
             if not isinstance(response, Mapping) or "actions" not in response:
                 raise ValueError("OpenPI response must contain actions")

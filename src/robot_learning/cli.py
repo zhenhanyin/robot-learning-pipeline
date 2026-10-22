@@ -108,6 +108,12 @@ def main(argv: Sequence[str] = None) -> int:
     preprocess_video.add_argument("destination", type=Path)
     preprocess_video.add_argument("--camera", required=True)
     preprocess_video.add_argument("--jpeg-quality", type=int, default=95)
+    policy_manifest = commands.add_parser("validate-policy-manifest", help="validate external checkpoint and policy mappings")
+    policy_manifest.add_argument("manifest", type=Path)
+    policy_manifest.add_argument("--training-plan", type=Path)
+    training_plan = commands.add_parser("validate-training-plan", help="validate framework-neutral model training configuration")
+    training_plan.add_argument("plan", type=Path)
+    training_plan.add_argument("--check-paths", action="store_true")
     args = parser.parse_args(argv)
 
     if args.command == "sample":
@@ -158,6 +164,36 @@ def main(argv: Sequence[str] = None) -> int:
                               "destination": str(args.destination)}))
         except (OSError, ValueError, ImportError, KeyError) as error:
             print(json.dumps({"error": str(error)}, ensure_ascii=False), file=sys.stderr)
+            return 2
+    elif args.command == "validate-policy-manifest":
+        from robot_learning.policies.manifest import PolicyManifest
+
+        try:
+            manifest = PolicyManifest.load(args.manifest)
+            if args.training_plan:
+                from robot_learning.formats.training_plan import TrainingPlan
+
+                manifest.validate_training_plan(TrainingPlan.load(args.training_plan))
+            print(json.dumps({"valid": True, "model": manifest.model,
+                              "joint_count": len(manifest.joint_names),
+                              "action_dimension": len(manifest.joint_names) + int(manifest.gripper_in_action),
+                              "cameras": sorted(manifest.camera_map),
+                              "checkpoint_env_required": manifest.checkpoint_env}, ensure_ascii=False))
+        except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError) as error:
+            print(json.dumps({"valid": False, "error": str(error)}, ensure_ascii=False), file=sys.stderr)
+            return 2
+    elif args.command == "validate-training-plan":
+        from robot_learning.formats.training_plan import TrainingPlan
+
+        try:
+            plan = TrainingPlan.load(args.plan)
+            if args.check_paths:
+                plan.validate_paths(args.plan.parent)
+            print(json.dumps({"valid": True, "model": plan.model,
+                              "dataset_format": plan.dataset_format,
+                              "paths_checked": args.check_paths}, ensure_ascii=False))
+        except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError) as error:
+            print(json.dumps({"valid": False, "error": str(error)}, ensure_ascii=False), file=sys.stderr)
             return 2
     elif args.command in ("doctor-piper", "collect-piper"):
         from dataclasses import asdict
