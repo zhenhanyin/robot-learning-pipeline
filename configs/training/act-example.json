@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "model": "act",
+  "backend": "your_training_package:build_runner",
+  "dataset_path": "../../data/lerobot-demo",
+  "dataset_format": "lerobot",
+  "output_path": "../../checkpoints/act-demo",
+  "task": "synthetic pick",
+  "action_source": "leader_command",
+  "joint_units": "rad",
+  "action_units": "rad",
+  "hyperparameters": {
+    "batch_size": 8,
+    "epochs": 100,
+    "learning_rate": 0.0001
+  }
+}

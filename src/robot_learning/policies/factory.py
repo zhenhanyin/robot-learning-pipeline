@@ -28,8 +28,16 @@ def load_policy(spec: PolicySpec, backend_reference: str,
         encoder = rgb_array
     elif image_format == "bytes":
         encoder = lambda frame: frame.payload
+    elif image_format == "frame":
+        encoder = lambda frame: {
+            "encoding": frame.encoding,
+            "width": frame.width,
+            "height": frame.height,
+            "modality": frame.modality,
+            "payload": frame.payload,
+        }
     else:
-        raise ValueError("image_format must be rgb-array or bytes")
+        raise ValueError("image_format must be rgb-array, bytes or frame")
     backend = load_component(backend_reference, backend_options)
     method = "get_chunk" if spec.model == "act" else "predict_action" if spec.model == "hrdt" else "infer"
     if not callable(getattr(backend, method, None)):

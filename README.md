@@ -1,10 +1,12 @@
 # Robot Learning Pipeline
 
-面向机械臂数据采集、标注、训练数据导出与策略部署的分阶段开源框架。**v0.6.0 补齐旧数据字段导入和离线预处理工具。** 公共核心仍无需硬件或第三方 SDK；真机控制和真实模型验证按可选集成接入。
+面向机械臂数据采集、标注、训练数据导出与策略部署的分阶段开源框架。**v0.7.0 增加外部模型/服务适配和 checkpoint 配置校验。** 公共核心仍无需硬件或第三方 SDK；真机控制和真实模型验证按可选集成接入。
 
 原始项目 `Data-Collect-and-Deploy-main` 的三个目录按功能逐项迁移，不直接复制整棵旧代码树。本仓库不包含第三方 SDK、权重或真实采集数据。
 
 `v0.6.0` 已增加 Piper/ARX 命令适配器、ROS1 控制接口、ARX HDF5 导入与显式回放、末端姿态和相机标定保存、深度帧处理、HDF5 统计/平滑/视频预处理入口。代码经过离线测试；真实 MP4 解码、模型服务和重组版真机控制尚未验收。详见[控制与回放](docs/control-and-replay.md)和[数据预处理](docs/data-preprocessing.md)。
+
+`v0.7.0` 增加 ACT/H-RDT/π0/π0.5 的外部 checkpoint 清单与维度/单位/归一化约束、HTTPS 语音/VLM/VLA 服务协议和训练计划 schema。服务只经显式注入启用，真实 endpoint、模型权重及训练器不包含在仓库内；细节见[模型与服务集成](docs/model-services.md)。
 
 ## 设计目标
 
@@ -32,7 +34,7 @@
 | MagicBot 多模型任务编排与 Web 演示 | 离线预发布；假语音/VLM/VLA 完整任务和 HTTP 回归通过，未接真机 | v0.5.0 |
 | 末端姿态、相机标定和深度字段 | 离线导入与 HDF5 导出回归通过；单位仍按源数据声明 | v0.6.0 |
 | 旧 HDF5 统计、夹爪平滑和 MP4 预处理 | 输出写新文件；离线假解码测试通过 | v0.6.0 |
-| 真实 checkpoint 和语音/VLM/VLA 接入 | 可选后端开发中；不含模型权重 | v0.7.0 |
+| 真实 checkpoint 和语音/VLM/VLA 接入 | 外部适配协议与 manifest 完成；服务/权重未在本环境验收 | v0.7.0 |
 | 采集/标注操作 UI、VR 接口与迁移收尾 | 按旧流程重建；上游 SDK 单独安装 | v0.8.0 |
 
 ## 代码组织
@@ -43,12 +45,13 @@ src/robot_learning/
   adapters/            # Piper CAN/ROS1、ARX ROS2 适配器
   workflows/           # 只读采集、同步、离线动作预览与白名单任务编排
   formats/             # JSONL Episode、标注、训练样本组装和可选导出
+  integrations/        # 外部语音、视觉规划、策略 HTTP 协议
   annotation/          # 本地 Episode 标注存储与校验
   apps/                # Piper/ARX 采集入口、本机标注与合成任务 Web
   adapters/piper/       # 旧数据导入、注入式只读 SDK 映射
   adapters/ros1/        # 注入式 ROS1 Image 映射
   adapters/arx_x5/      # 注入式 ROS2 RobotStatus/Image 映射
-  policies/            # 策略客户端与显式观测映射
+  policies/            # checkpoint 清单、策略客户端与显式观测映射
   cli.py               # 离线示例、检查、片段标注和标注 Web 入口
 configs/               # 机器人、相机、任务和模型配置示例
 integrations/          # OpenPI、LLaMA-Factory 等第三方集成配置
@@ -57,7 +60,7 @@ docs/                  # 架构、数据协议、迁移与发布计划
 tests/                 # 不依赖真机的契约测试
 ```
 
-已实现 `core/`、离线与可选实时采集、标注、策略预览、旧格式导入、训练导出及数据预处理。真实 checkpoint 专属预处理、设备安全联动仍由可选集成补齐。详见 [架构说明](docs/architecture.md)、[控制与回放](docs/control-and-replay.md) 和 [迁移清单](docs/migration.md)。
+已实现 `core/`、离线与可选实时采集、标注、策略预览、旧格式导入、训练导出、数据预处理和外部模型/服务契约。实际模型预处理配置、外部服务与设备安全联动需按 checkpoint 和机器人手册配置并另行验收。详见 [架构说明](docs/architecture.md)、[模型与服务集成](docs/model-services.md) 和 [迁移清单](docs/migration.md)。
 
 ## 安装与验证
 
@@ -92,6 +95,8 @@ robot-learning annotate-span ./data/collected-demo --annotator demo --start 0 --
 robot-learning build-vlm ./data/collected-demo ./data/vlm-demo --camera base --instruction 'What is happening?'
 robot-learning action-stats /path/to/legacy.hdf5
 robot-learning smooth-gripper-hdf5 /path/to/legacy.hdf5 ./data/legacy-smoothed.hdf5
+robot-learning validate-training-plan configs/training/act-example.json
+robot-learning validate-policy-manifest configs/policies/act-http.example.json
 ```
 
 `build-vlm` 前须为 Episode 保存 `used_for_vlm=true` 的片段标注；示例输出目录须不存在，重跑请更换路径。LeRobot 的独立安装、固定帧率和读回步骤见 [训练数据导出](docs/training-export.md)。
