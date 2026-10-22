@@ -3,7 +3,7 @@
 import json
 from dataclasses import asdict
 from pathlib import Path
-from typing import Dict, Iterator, Optional, Union
+from typing import Dict, Iterator, Mapping, Optional, Union
 
 from robot_learning.core.models import ActionSource, ArmAction, ArmState, CameraFrame
 
@@ -15,15 +15,12 @@ SCHEMA_VERSION = 1
 class JsonlEpisodeWriter:
     def __init__(
         self, directory: Path, robot_model: str, clock_domain: str, joint_units: str,
-        gripper_units: Optional[str] = None,
+        gripper_units: Optional[str] = None, extra_metadata: Optional[Mapping[str, object]] = None,
     ) -> None:
         if not robot_model or not clock_domain or not joint_units:
             raise ValueError("robot_model, clock_domain and joint_units are required")
         if gripper_units is not None and (not isinstance(gripper_units, str) or not gripper_units):
             raise ValueError("gripper_units must be non-empty when provided")
-        self.directory = Path(directory)
-        self.directory.mkdir(parents=True, exist_ok=False)
-        (self.directory / "frames").mkdir()
         metadata = {
             "schema_version": SCHEMA_VERSION,
             "robot_model": robot_model,
@@ -32,8 +29,16 @@ class JsonlEpisodeWriter:
         }
         if gripper_units is not None:
             metadata["gripper_units"] = gripper_units
+        if extra_metadata is not None:
+            if any(not isinstance(key, str) or not key or key in metadata for key in extra_metadata):
+                raise ValueError("extra metadata keys must be non-empty and not reserved")
+            metadata.update(extra_metadata)
+        serialized_metadata = json.dumps(metadata, indent=2, allow_nan=False) + "\n"
+        self.directory = Path(directory)
+        self.directory.mkdir(parents=True, exist_ok=False)
+        (self.directory / "frames").mkdir()
         (self.directory / "metadata.json").write_text(
-            json.dumps(metadata, indent=2) + "\n", encoding="utf-8"
+            serialized_metadata, encoding="utf-8"
         )
         self._events = (self.directory / "events.jsonl").open("w", encoding="utf-8")
         self._frame_count = 0
@@ -93,6 +98,8 @@ class EpisodeReader:
                     data["joint_positions"] = tuple(data["joint_positions"])
                     if data["joint_velocities"] is not None:
                         data["joint_velocities"] = tuple(data["joint_velocities"])
+                    if data.get("end_effector_pose") is not None:
+                        data["end_effector_pose"] = tuple(data["end_effector_pose"])
                     yield ArmState(**data)
                 elif event["type"] == "action":
                     data["source"] = ActionSource(data["source"])
@@ -103,6 +110,9 @@ class EpisodeReader:
                     if Path(filename).name != filename or not filename.endswith(".bin"):
                         raise ValueError("unsafe frame filename")
                     data["payload"] = (self.directory / "frames" / filename).read_bytes()
+                    for name in ("intrinsic_cv", "extrinsic_cv", "cam2world_gl"):
+                        if data.get(name) is not None:
+                            data[name] = tuple(data[name])
                     yield CameraFrame(**data)
                 else:
                     raise ValueError("unknown record type")

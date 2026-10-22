@@ -105,4 +105,8 @@ class AnnotationStore:
         return CameraFrame(
             frame_data["camera_id"], frame_data["timestamp_ns"], frame_data["encoding"],
             frame_data["width"], frame_data["height"], frame_path.read_bytes(),
+            frame_data.get("modality", "rgb"),
+            tuple(frame_data["intrinsic_cv"]) if frame_data.get("intrinsic_cv") is not None else None,
+            tuple(frame_data["extrinsic_cv"]) if frame_data.get("extrinsic_cv") is not None else None,
+            tuple(frame_data["cam2world_gl"]) if frame_data.get("cam2world_gl") is not None else None,
         )

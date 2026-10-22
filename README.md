@@ -1,8 +1,10 @@
 # Robot Learning Pipeline
 
-面向机械臂数据采集、标注、训练数据导出与策略部署的分阶段开源框架。**v0.5.0 增加白名单任务编排与本机离线 Web 演示。** 公共核心仍无需硬件或第三方 SDK。当前仅完成合成轨迹、假模型与注入式接口的离线验证；真实模型加载、真机命令发布和硬件验收尚未完成。
+面向机械臂数据采集、标注、训练数据导出与策略部署的分阶段开源框架。**v0.6.0 补齐旧数据字段导入和离线预处理工具。** 公共核心仍无需硬件或第三方 SDK；真机控制和真实模型验证按可选集成接入。
 
 原始项目 `Data-Collect-and-Deploy-main` 的三个目录按功能逐项迁移，不直接复制整棵旧代码树。本仓库不包含第三方 SDK、权重或真实采集数据。
+
+`v0.6.0` 已增加 Piper/ARX 命令适配器、ROS1 控制接口、ARX HDF5 导入与显式回放、末端姿态和相机标定保存、深度帧处理、HDF5 统计/平滑/视频预处理入口。代码经过离线测试；真实 MP4 解码、模型服务和重组版真机控制尚未验收。详见[控制与回放](docs/control-and-replay.md)和[数据预处理](docs/data-preprocessing.md)。
 
 ## 设计目标
 
@@ -24,10 +26,14 @@
 | 旧 Piper 录制目录离线导入 | 可用，合成旧格式回归通过；真实旧录制待核对 | v0.0.6 |
 | Piper SDK 与 ROS1 Image 只读映射 | 假 SDK/消息回归通过；未连接真机 | v0.0.7 |
 | Piper CAN/ROS1 采集、时间同步与标注 | 离线预发布；假设备与合成轨迹通过，真机数据待核对 | v0.1.0 |
-| ARX X5 ROS2 采集与回放 | 离线预发布；只读采集与消息夹具回放通过，真机和运动回放未验收 | v0.2.0 |
+| ARX X5 ROS2 采集与消息回放 | 离线预发布；只读采集与消息夹具回放通过 | v0.2.0 |
 | HDF5、LeRobot 导出与训练配置 | 离线预发布；HDF5 实际读回、LeRobot 注入式测试通过；模型加载待验收 | v0.3.0 |
 | ACT、H-RDT、π0/π0.5 策略与动作控制 | 离线预发布；假模型推理与安全门通过，不下发真机命令 | v0.4.0 |
 | MagicBot 多模型任务编排与 Web 演示 | 离线预发布；假语音/VLM/VLA 完整任务和 HTTP 回归通过，未接真机 | v0.5.0 |
+| 末端姿态、相机标定和深度字段 | 离线导入与 HDF5 导出回归通过；单位仍按源数据声明 | v0.6.0 |
+| 旧 HDF5 统计、夹爪平滑和 MP4 预处理 | 输出写新文件；离线假解码测试通过 | v0.6.0 |
+| 真实 checkpoint 和语音/VLM/VLA 接入 | 可选后端开发中；不含模型权重 | v0.7.0 |
+| 采集/标注操作 UI、VR 接口与迁移收尾 | 按旧流程重建；上游 SDK 单独安装 | v0.8.0 |
 
 ## 代码组织
 
@@ -51,7 +57,7 @@ docs/                  # 架构、数据协议、迁移与发布计划
 tests/                 # 不依赖真机的契约测试
 ```
 
-目前实现 `core/`、只读采集、离线策略预览与合成任务编排 `workflows/`、离线 `formats/`、Piper 旧数据导入、可选 Piper/ARX 采集入口、本机标注 Web 与可选训练导出；ARX 运动回放和真实模型联调尚未实现。详见 [架构说明](docs/architecture.md)、[训练数据导出](docs/training-export.md)、[策略离线预览](docs/policy-preview.md)、[任务演示](docs/task-demo.md) 和 [迁移清单](docs/migration.md)。
+已实现 `core/`、离线与可选实时采集、标注、策略预览、旧格式导入、训练导出及数据预处理。真实 checkpoint 专属预处理、设备安全联动仍由可选集成补齐。详见 [架构说明](docs/architecture.md)、[控制与回放](docs/control-and-replay.md) 和 [迁移清单](docs/migration.md)。
 
 ## 安装与验证
 
@@ -84,9 +90,18 @@ python -m pip install -e '.[hdf5,vlm]'
 robot-learning export ./data/collected-demo ./data/collected-demo.hdf5 --format hdf5
 robot-learning annotate-span ./data/collected-demo --annotator demo --start 0 --end 4 --text 'pick object' --used-for-vlm
 robot-learning build-vlm ./data/collected-demo ./data/vlm-demo --camera base --instruction 'What is happening?'
+robot-learning action-stats /path/to/legacy.hdf5
+robot-learning smooth-gripper-hdf5 /path/to/legacy.hdf5 ./data/legacy-smoothed.hdf5
 ```
 
 `build-vlm` 前须为 Episode 保存 `used_for_vlm=true` 的片段标注；示例输出目录须不存在，重跑请更换路径。LeRobot 的独立安装、固定帧率和读回步骤见 [训练数据导出](docs/training-export.md)。
+
+MP4 解码需额外安装 OpenCV；命令会将均匀抽样的 JPEG 帧写入新的 HDF5 文件，不修改输入：
+
+```bash
+python -m pip install -e '.[video]'
+robot-learning preprocess-video ./episode_head_camera.mp4 ./episode.hdf5 ./episode-with-video.hdf5 --camera head_camera
+```
 
 策略客户端只以注入式假模型离线验证，下面四条命令均不连接设备：
 

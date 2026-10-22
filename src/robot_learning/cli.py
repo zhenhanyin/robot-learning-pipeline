@@ -80,6 +80,34 @@ def main(argv: Sequence[str] = None) -> int:
     annotate_web.add_argument("--port", type=int, default=8765)
     task_demo = commands.add_parser("task-demo", help="serve the synthetic offline task dashboard")
     task_demo.add_argument("--port", type=int, default=8766)
+    control_web = commands.add_parser("control-web", help="serve the Piper ROS1 control API on loopback")
+    control_web.add_argument("--port", type=int, default=8767)
+    replay_hdf5 = commands.add_parser("replay-arx-hdf5", help="preview or explicitly publish legacy ARX HDF5 commands")
+    replay_hdf5.add_argument("source", type=Path)
+    replay_hdf5.add_argument("--rate", type=float, default=30)
+    replay_hdf5.add_argument("--noop-threshold", type=float, default=0)
+    replay_hdf5.add_argument("--publish", action="store_true")
+    replay_hdf5.add_argument("--limits", type=Path)
+    replay_hdf5.add_argument("--interpolation-steps", type=int, default=0)
+    import_arx = commands.add_parser("import-arx-legacy", help="import legacy ARX HDF5 states, poses, images, and calibration")
+    import_arx.add_argument("source", type=Path)
+    import_arx.add_argument("directory", type=Path)
+    import_arx.add_argument("--rate", type=float, required=True)
+    import_arx.add_argument("--cameras", nargs="+")
+    action_stats = commands.add_parser("action-stats", help="calculate action statistics from HDF5")
+    action_stats.add_argument("source", type=Path)
+    smooth_gripper = commands.add_parser("smooth-gripper-hdf5", help="write a smoothed HDF5 copy")
+    smooth_gripper.add_argument("source", type=Path)
+    smooth_gripper.add_argument("destination", type=Path)
+    smooth_gripper.add_argument("--window-size", type=int, default=5)
+    smooth_gripper.add_argument("--threshold-ratio", type=float, default=0.05)
+    smooth_gripper.add_argument("--min-stable-frames", type=int, default=5)
+    preprocess_video = commands.add_parser("preprocess-video", help="attach uniformly sampled MP4 frames to an HDF5 copy")
+    preprocess_video.add_argument("video", type=Path)
+    preprocess_video.add_argument("source", type=Path)
+    preprocess_video.add_argument("destination", type=Path)
+    preprocess_video.add_argument("--camera", required=True)
+    preprocess_video.add_argument("--jpeg-quality", type=int, default=95)
     args = parser.parse_args(argv)
 
     if args.command == "sample":
@@ -102,6 +130,35 @@ def main(argv: Sequence[str] = None) -> int:
             parser.error("tolerance-ms must be non-negative")
         summary = import_legacy_run(args.source, args.destination, args.tolerance_ms * 1_000_000)
         print(json.dumps(asdict(summary), indent=2))
+    elif args.command == "action-stats":
+        from robot_learning.formats.preprocessing import hdf5_action_statistics
+
+        try:
+            print(json.dumps(hdf5_action_statistics(args.source).to_dict(), indent=2))
+        except (OSError, ValueError, ImportError, KeyError) as error:
+            print(json.dumps({"error": str(error)}, ensure_ascii=False), file=sys.stderr)
+            return 2
+    elif args.command == "smooth-gripper-hdf5":
+        from robot_learning.formats.preprocessing import smooth_hdf5_grippers
+
+        try:
+            changed = smooth_hdf5_grippers(args.source, args.destination, args.window_size,
+                                           args.threshold_ratio, args.min_stable_frames)
+            print(json.dumps({"datasets_smoothed": changed, "destination": str(args.destination)}))
+        except (OSError, ValueError, ImportError, KeyError) as error:
+            print(json.dumps({"error": str(error)}, ensure_ascii=False), file=sys.stderr)
+            return 2
+    elif args.command == "preprocess-video":
+        from robot_learning.formats.video import preprocess_video
+
+        try:
+            count = preprocess_video(args.video, args.source, args.destination,
+                                     args.camera, args.jpeg_quality)
+            print(json.dumps({"camera": args.camera, "frames": count,
+                              "destination": str(args.destination)}))
+        except (OSError, ValueError, ImportError, KeyError) as error:
+            print(json.dumps({"error": str(error)}, ensure_ascii=False), file=sys.stderr)
+            return 2
     elif args.command in ("doctor-piper", "collect-piper"):
         from dataclasses import asdict
 
@@ -199,6 +256,43 @@ def main(argv: Sequence[str] = None) -> int:
         if not 0 <= args.port <= 65535:
             parser.error("port must be between 0 and 65535")
         serve(args.port)
+    elif args.command == "control-web":
+        from robot_learning.apps.control_web import serve
+
+        if not 0 <= args.port <= 65535:
+            parser.error("port must be between 0 and 65535")
+        serve(args.port)
+    elif args.command == "replay-arx-hdf5":
+        from robot_learning.apps.arx_replay import (
+            load_replay_config, publish_arx_ros2, replay_plan,
+        )
+
+        try:
+            if args.interpolation_steps < 0:
+                parser.error("interpolation-steps must be non-negative")
+            if args.publish and args.limits is None:
+                parser.error("--publish requires --limits with verified units and bounds")
+            config = load_replay_config(args.limits) if args.publish else None
+            rate = config.rate_hz if config else args.rate
+            commands = replay_plan(args.source, rate, args.noop_threshold)
+            published = publish_arx_ros2(commands, config, args.interpolation_steps) if config else 0
+            print(json.dumps({"selected_frames": len(commands), "published": published,
+                              "joint_units": config.joint_units if config else "source_unverified",
+                              "gripper_units": config.gripper_units if config else "source_unverified"}))
+        except (OSError, ValueError, ImportError, RuntimeError, KeyError) as error:
+            print(json.dumps({"error": str(error)}, ensure_ascii=False), file=sys.stderr)
+            return 2
+    elif args.command == "import-arx-legacy":
+        from robot_learning.adapters.arx_x5 import import_legacy_arx_episode
+
+        try:
+            count = import_legacy_arx_episode(args.source, args.directory, args.rate,
+                                              tuple(args.cameras))
+            print(json.dumps({"states": count, "cameras": args.cameras,
+                              "action_source": "not_recorded"}))
+        except (OSError, ValueError, ImportError, KeyError) as error:
+            print(json.dumps({"error": str(error)}, ensure_ascii=False), file=sys.stderr)
+            return 2
     else:
         episode = EpisodeReader(args.directory)
         frame_count = sum(isinstance(record, CameraFrame) for record in episode.records())

@@ -17,6 +17,7 @@ Camera adapters ─────────────────────�
 - `core` 只描述跨硬件的数据和接口，不能导入 ROS、CAN、Qt、Web 服务或模型框架。`StateReader` / `ActionReader` 是只读端口，`RobotAdapter` 才有 `send_command()`。
 - `adapters` 转换设备原生消息；ROS1 与 ROS2 在不同进程和环境中使用相同契约。
 - `workflows` 编排采集、同步、回放；它只依赖 core 接口，不直接解析 CAN 帧。当前 `record_samples()` 仅读取设备，不下发动作。
+- 未发布的 `workflows/motion.py` 将限位检查、静止帧判断与可注入的命令发送边界拆开；Piper/ARX 写入适配器分别留在 `adapters/`，不会在普通采集命令中自动启用。
 - `formats` 负责原始记录和训练格式转换；标注信息独立保存。
 - `formats.training` 先验证并分组 Episode，再分别交给 HDF5、LeRobot 与标注数据导出；LeRobot、NumPy、h5py、Pillow 只在相应导出路径按需加载。
 - `policies` 负责注入式模型调用、显式相机映射和动作维度校验，输出候选 `RobotCommand`；`workflows.policy_preview` 只离线筛选候选动作，不调用设备发布接口。设备使能、真实限位及制造商安全停机仍待真机集成。

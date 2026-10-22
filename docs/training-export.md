@@ -13,7 +13,7 @@ python -m pip install -e '.[hdf5]'
 robot-learning export ./data/demo ./data/demo.hdf5 --format hdf5
 ```
 
-文件包含属性 `schema_version`、`robot_model`、`clock_domain`、`joint_units`、可选 `gripper_units`、`arm_id` 和 `action_source`。数据集为 `observation/joint_positions`、`observation/timestamp_ns`、`action/joint_targets`、`action/timestamp_ns`、可选夹爪，以及 `observation/images/<camera>/{payload,encoding,width,height,timestamp_ns}`。图像保留原始字节和编码；不重压缩、不合成不存在的右臂或末端位姿。这是 **robot_learning_hdf5_v1** 布局，**不是**旧脚本 `joint_action/left_arm` / JPEG `observation/*/rgb` 的直接替代品；旧 HDF5 训练器需另做字段映射并核对实际样本。
+文件包含属性 `schema_version`、`robot_model`、`clock_domain`、`joint_units`、可选 `gripper_units`、`arm_id` 和 `action_source`。数据集包括关节状态/动作、可选夹爪与末端姿态，以及 `observation/images/<camera>` 下的原始图像、编码、RGB/深度模态和逐帧相机标定。原始字节不重压缩；没有的字段不会补造。这是 **robot_learning_hdf5_v1** 布局，**不是**旧脚本 `joint_action/left_arm` / JPEG `observation/*/rgb` 的直接替代品；旧 HDF5 训练器需另做字段映射并核对实际样本。
 
 ## LeRobot v3 / OpenPI
 
@@ -25,7 +25,7 @@ robot-learning export ./data/demo ./data/demo-lerobot --format lerobot \
   --repo-id local/demo --fps 10 --task 'synthetic pick'
 ```
 
-调用外部 `LeRobotDataset.create/add_frame/save_episode/finalize`，使用 `observation.state`、`action`、`observation.images.<camera>` 和逐帧 `task`。本地采用 `use_videos=False` 的图像存储，不上传 Hub。导出后用相同类重新读回首样本；`robot_learning_export.json` 保存源时间戳、单位与动作来源。LeRobot 会按固定 `fps` 重建内部时间；源状态时间间隔偏离指定帧率超过 20% 时拒绝导出。仅支持 PNG、8 位 RGB/BGR/灰度；16 位深度暂不映射到 RGB。特征映射示例见 [OpenPI 集成](../integrations/openpi/README.md)。
+调用外部 `LeRobotDataset.create/add_frame/save_episode/finalize`，使用 `observation.state`、`action`、RGB 图像和逐帧 `task`。深度相机从 LeRobot 图像特征中排除，并在导出清单保留模态、相机标定和末端姿态格式。本地采用 `use_videos=False` 的图像存储，不上传 Hub。导出后用相同类重新读回首样本；`robot_learning_export.json` 保存源时间戳、单位与动作来源。LeRobot 会按固定 `fps` 重建内部时间；源状态时间间隔偏离指定帧率超过 20% 时拒绝导出。特征映射示例见 [OpenPI 集成](../integrations/openpi/README.md)。
 
 当前 CI 没有安装 LeRobot/OpenPI、Torch 或模型权重，只对 LeRobot API 进行注入式写入/读回回归；**真实 LeRobot 包及 OpenPI 模型的数据加载尚未通过本版验收**。不得把假数据集测试描述为模型已能训练。外部 LeRobot API 见其 [官方数据集文档](https://huggingface.co/docs/lerobot/main/api/datasets)；升级上游版本时先复测兼容性。
 

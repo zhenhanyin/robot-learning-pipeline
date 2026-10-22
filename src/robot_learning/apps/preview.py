@@ -18,6 +18,19 @@ def frame_preview_png(encoding: str, width: int, height: int, payload: bytes) ->
         raise ValueError("invalid preview dimensions")
     if width * height > MAX_PREVIEW_PIXELS or len(payload) > MAX_PREVIEW_BYTES:
         raise ValueError("preview exceeds size limit")
+    if encoding == "jpeg":
+        from io import BytesIO
+        from PIL import Image, UnidentifiedImageError
+
+        try:
+            with Image.open(BytesIO(payload)) as source:
+                if source.size != (width, height):
+                    raise ValueError("JPEG dimensions do not match episode")
+                output = BytesIO()
+                source.convert("RGB").save(output, format="PNG")
+                return output.getvalue()
+        except (UnidentifiedImageError, OSError) as error:
+            raise ValueError("invalid JPEG preview") from error
     if encoding == "png":
         if len(payload) < 24 or not payload.startswith(PNG_SIGNATURE):
             raise ValueError("invalid PNG preview")

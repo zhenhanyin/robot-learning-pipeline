@@ -130,6 +130,27 @@ class ArxCaptureTests(unittest.TestCase):
             summary = replay_arx_messages(self.config, source, Path(temporary) / "episode")
             self.assertEqual((summary.written, summary.dropped), (0, 1))
 
+    def test_optional_noop_filter_applies_during_capture(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            config_path = Path(temporary) / "config.json"
+            data = json.loads(Path("configs/arx_x5_ros2.json").read_text(encoding="utf-8"))
+            data["noop_joint_threshold"] = 0.01
+            config_path.write_text(json.dumps(data), encoding="utf-8")
+            config = load_arx_config(config_path)
+            source = Path(temporary) / "messages.jsonl"
+            with source.open("w", encoding="utf-8") as events:
+                for index in range(3):
+                    timestamp = index * 100_000_000
+                    for topic in config.cameras.values():
+                        events.write(json.dumps({"topic": topic, "message": vars(image(timestamp))},
+                                                default=lambda value: vars(value)) + "\n")
+                    current = status(timestamp, 0.0 if index < 2 else 0.2)
+                    events.write(json.dumps({"topic": config.follower_status_topic, "message": vars(current)},
+                                            default=lambda value: vars(value)) + "\n")
+            summary = replay_arx_messages(config, source, Path(temporary) / "episode")
+            self.assertEqual((summary.written, summary.dropped), (2, 1))
+            self.assertTrue(validate_episode(Path(temporary) / "episode").valid)
+
     def test_fake_ros2_live_capture_cleans_up(self):
         class FakeNode:
             def __init__(self):

@@ -14,6 +14,7 @@ from robot_learning.workflows.synchronization import synchronize_timestamps
 
 JOINT_RECORD = struct.Struct(">ddiiiiii")
 GRIPPER_RECORD = struct.Struct(">ddiii")
+ENDPOSE_RECORD = struct.Struct(">ddiiiiii")
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 IMAGE_NAME = re.compile(r"[0-9]+_[0-9]+\.png\Z")
 
@@ -106,6 +107,11 @@ def import_legacy_run(source: Path, destination: Path, tolerance_ns: int = 30_00
     follower_grippers = _read_stream(source / "follower_gripper", GRIPPER_RECORD, 1)
     leader_joints = _read_stream(source / "leader_joint", JOINT_RECORD, 1_000_000_000)
     leader_grippers = _read_stream(source / "leader_gripper", GRIPPER_RECORD, 1)
+    endpose_path = source / "follower_endpose"
+    if endpose_path.is_symlink():
+        raise ValueError("follower_endpose must not be a symlink")
+    follower_endposes = (_read_stream(endpose_path, ENDPOSE_RECORD, 1_000_000_000)
+                         if endpose_path.exists() else None)
 
     image_root = source / "img"
     if image_root.is_symlink() or not image_root.is_dir():
@@ -131,14 +137,24 @@ def import_legacy_run(source: Path, destination: Path, tolerance_ns: int = 30_00
         "leader_joint": _timestamps(leader_joints),
         "leader_gripper": _timestamps(leader_grippers),
     }
+    if follower_endposes is not None:
+        streams["follower_endpose"] = _timestamps(follower_endposes)
     streams.update((name, [image.timestamp_ns for image in images]) for name, images in cameras.items())
     matches = synchronize_timestamps([image.timestamp_ns for image in front], streams, tolerance_ns)
     if not matches:
         raise ValueError("no complete legacy samples within tolerance")
 
+    extra_metadata = {"source_format": "legacy_piper_binary_png"}
+    if follower_endposes is not None:
+        extra_metadata.update({
+            "end_effector_pose_units": "piper_raw_endpose_tick_unverified",
+            "end_effector_frame": "unspecified",
+        })
+    if any(camera.endswith("_depth") for camera in cameras):
+        extra_metadata["depth_units"] = "legacy_png_units_unverified"
     with JsonlEpisodeWriter(
         destination, "piper_legacy", "legacy_piper_epoch_assumed",
-        "piper_raw_joint_tick", "piper_raw_gripper_tick",
+        "piper_raw_joint_tick", "piper_raw_gripper_tick", extra_metadata,
     ) as writer:
         for match in matches:
             indices = match.stream_indices
@@ -146,12 +162,22 @@ def import_legacy_run(source: Path, destination: Path, tolerance_ns: int = 30_00
             follower_gripper = follower_grippers[indices["follower_gripper"]]
             leader_joint = leader_joints[indices["leader_joint"]]
             leader_gripper = leader_grippers[indices["leader_gripper"]]
-            writer.append_state(ArmState("left", follower_joint.timestamp_ns, tuple(map(float, follower_joint.values)), float(follower_gripper.values[0])))
+            pose_values = () if follower_endposes is None else tuple(
+                float(value) for value in follower_endposes[indices["follower_endpose"]].values
+            )
+            writer.append_state(ArmState(
+                "left", follower_joint.timestamp_ns,
+                tuple(map(float, follower_joint.values)), float(follower_gripper.values[0]),
+                end_effector_pose=pose_values or None,
+                end_effector_pose_format="xyz_rpy" if pose_values else None,
+            ))
             writer.append_action(ArmAction("left", leader_joint.timestamp_ns, tuple(map(float, leader_joint.values)), ActionSource.LEADER_COMMAND, float(leader_gripper.values[0])))
             selected_images = [("base", front[match.anchor_index])]
             selected_images.extend((name, cameras[name][indices[name]]) for name in sorted(cameras))
             for camera_id, image in selected_images:
                 _regular_file(image.path)
-                writer.append_frame(CameraFrame(camera_id, image.timestamp_ns, "png", image.width, image.height, image.path.read_bytes()))
+                modality = "depth" if camera_id.endswith("_depth") else "rgb"
+                writer.append_frame(CameraFrame(camera_id, image.timestamp_ns, "png", image.width,
+                                                image.height, image.path.read_bytes(), modality))
 
     return LegacyImportSummary(len(front), len(matches), len(front) - len(matches), ("base", *sorted(cameras)))
